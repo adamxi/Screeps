@@ -1,4 +1,5 @@
 ﻿import {CreepObject} from "./CreepObject";
+import {GameManager} from "./../Managers/GameManager";
 
 export class CreepHarvester extends CreepObject {
     constructor(creep: Creep) {
@@ -18,17 +19,21 @@ export class CreepHarvester extends CreepObject {
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
                     let target = this.getOrSetTarget<Structure>(() => {
-                        let target = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
-                            filter: (s: Storage | Container) => {
-                                return (
-                                    s.structureType === STRUCTURE_CONTAINER ||
-                                    s.structureType === STRUCTURE_STORAGE) &&
-                                    _.sum(s.store) < s.storeCapacity;
-                            }
-                        });
+                        let storage: Structure;
 
-                        if (!target) {
-                            target = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                        if (GameManager.roomManagers[creep.room.name].hasRole(CreepRole.Carrier)) {
+                            storage = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                                filter: (s: Storage | Container) => {
+                                    return (
+                                        s.structureType === STRUCTURE_CONTAINER ||
+                                        s.structureType === STRUCTURE_STORAGE) &&
+                                        _.sum(s.store) < s.storeCapacity;
+                                }
+                            });
+                        }
+
+                        if (!storage) {
+                            storage = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
                                 filter: (structure: Extension | Spawn | Tower) => {
                                     return (
                                         structure.structureType === STRUCTURE_EXTENSION ||
@@ -39,9 +44,7 @@ export class CreepHarvester extends CreepObject {
                             });
                         }
 
-                        return {
-                            target: target
-                        };
+                        return { target: storage };
                     });
 
                     if (target) {

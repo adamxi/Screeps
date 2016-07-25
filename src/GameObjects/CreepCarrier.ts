@@ -11,27 +11,17 @@ export class CreepCarrier extends CreepObject {
         switch (creep.getState()) {
             case CreepState.Collecting:
                 if (creep.carry.energy < creep.carryCapacity) {
-                    let target = creep.getTarget<Storage | Container>();
-                    if (!target) {
-                        var containers = creep.room.find<Storage | Container>(FIND_STRUCTURES, {
-                            filter: (c: Storage | Container) => {
-                                return (
-                                    c.structureType === STRUCTURE_CONTAINER ||
-                                    c.structureType === STRUCTURE_STORAGE) &&
-                                    c.store[RESOURCE_ENERGY] >= 0;
-                            }
-                        });
+                    let storage = this.getStorage(true);
 
-                        if (containers.length > 0) {
-                            target = containers[0];
-                            creep.setTarget(target);
-                        }
-                    }
+                    if (storage) {
+                        switch (creep.withdraw(storage, RESOURCE_ENERGY)) {
+                            case OK:
+                                this.setState(CreepState.Working);
+                                break;
 
-                    if (target) {
-                        if (creep.withdraw(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(target);
-                            break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.moveTo(storage);
+                                break;
                         }
                     }
                 }

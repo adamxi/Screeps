@@ -19,28 +19,23 @@ export class CreepBuilder extends CreepObject {
 
             case CreepState.Collecting:
                 if (creep.carry.energy < creep.carryCapacity) {
-                    let target = this.getOrSetTarget<Storage | Container>(() => {
-                        let target = creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
-                            filter: (c: Storage | Container) => {
-                                return (
-                                    c.structureType === STRUCTURE_CONTAINER ||
-                                    c.structureType === STRUCTURE_STORAGE) &&
-                                    c.store[RESOURCE_ENERGY] > 0;
-                            }
-                        });
+                    let storage = this.getStorage();
 
-                        return { target: target }
-                    });
+                    if (storage) {
+                        switch (creep.withdraw(storage, RESOURCE_ENERGY)) {
+                            case OK:
+                                this.setState(CreepState.Building);
+                                break;
 
-                    if (target) {
-                        if (creep.withdraw(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(target);
-                            break;
+                            case ERR_NOT_IN_RANGE:
+                                creep.moveTo(storage);
+                                break;
                         }
+                    } else {
+                        this.setState(CreepState.Harvesting);
+                        this.update();
+                        break;
                     }
-
-                    this.setState(CreepState.Harvesting);
-                    break;
                 }
 
                 this.setState(CreepState.Building);
@@ -74,7 +69,7 @@ export class CreepBuilder extends CreepObject {
                                 break;
                             }
                         }
-
+                        
                         creep.clearTarget();
                         GameManager.roomManagers[creep.room.name].constructionManager.completed(target.id);
                         break;
@@ -92,4 +87,5 @@ export class CreepBuilder extends CreepObject {
                 break;
         }
     }
+
 }

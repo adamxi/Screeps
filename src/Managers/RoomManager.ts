@@ -35,7 +35,13 @@ export class RoomManager {
         this.creepConstraint[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 5);
         this.creepConstraint[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 3);
         this.creepConstraint[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 6);
-        this.creepConstraint[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2);
+        this.creepConstraint[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2, r => {
+            return this.room.find(FIND_STRUCTURES, {
+                filter: (s: Storage | Container) => {
+                    return (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE)
+                }
+            }).length > 0;
+        });
 
         var sum = 0;
         for (let c in this.creepConstraint) {
@@ -68,6 +74,14 @@ export class RoomManager {
         }
     }
 
+    public hasRole(role: CreepRole): boolean {
+        var c = this.creepConstraint[role];
+        if (c) {
+            return c.populationCount > 0;
+        }
+        return false;
+    }
+
     public getNextRole(): CreepRole {
         this.countPopulation();
 
@@ -77,7 +91,8 @@ export class RoomManager {
 
         for (let i = 0; i < len; ++i) {
             let constraint = this.creepConstraint[i];
-            if (constraint.populationMax != -1 && constraint.populationCount >= constraint.populationMax) {
+            if (constraint.populationMax != -1 && constraint.populationCount >= constraint.populationMax ||
+                !constraint.spawnCondition(this.room)) {
                 continue;
             }
 

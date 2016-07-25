@@ -17,32 +17,23 @@ export class CreepUpgrader extends CreepObject {
 
             case CreepState.Collecting:
                 if (creep.carry.energy < creep.carryCapacity) {
-                    let target = creep.getTarget<Storage | Container>();
-                    if (!target) {
-                        var containers = creep.room.find<Storage | Container>(FIND_STRUCTURES, {
-                            filter: (c: Storage | Container) => {
-                                return (
-                                    c.structureType === STRUCTURE_CONTAINER ||
-                                    c.structureType === STRUCTURE_STORAGE) &&
-                                    c.store[RESOURCE_ENERGY] > 0;
-                            }
-                        });
+                    let storage = this.getStorage();
 
-                        if (containers.length > 0) {
-                            target = containers[0];
-                            creep.setTarget(target);
+                    if (storage) {
+                        switch (creep.withdraw(storage, RESOURCE_ENERGY)) {
+                            case OK:
+                                this.setState(CreepState.Upgrading);
+                                break;
+
+                            case ERR_NOT_IN_RANGE:
+                                creep.moveTo(storage);
+                                break;
                         }
+                    } else {
+                        this.setState(CreepState.Harvesting);
+                        this.update();
+                        break;
                     }
-
-                    if (target) {
-                        if (creep.withdraw(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(target);
-                            break;
-                        }
-                    }
-
-                    this.setState(CreepState.Harvesting);
-                    break;
                 }
 
                 this.setState(CreepState.Upgrading);

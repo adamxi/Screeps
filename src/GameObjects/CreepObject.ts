@@ -38,6 +38,21 @@ export abstract class CreepObject extends GameObject {
         return false;
     }
 
+    protected getStorage(includeEmpty = false): Storage | Container {
+        return this.getOrSetTarget<Storage | Container>(() => {
+            let target = this.creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
+                filter: (c: Storage | Container) => {
+                    return (
+                        c.structureType === STRUCTURE_CONTAINER ||
+                        c.structureType === STRUCTURE_STORAGE) &&
+                        (includeEmpty ? c.store[RESOURCE_ENERGY] >= 0 : c.store[RESOURCE_ENERGY] > 0);
+                }
+            });
+
+            return { target: target }
+        });
+    }
+
     protected moveToIdlePos(): boolean {
         var creep = this.creep;
         creep.clearTarget();
