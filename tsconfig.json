@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "sourceMap": false,
+    "declaration": false,
+    "noResolve": false,
+    "noImplicitAny": true,
+    "removeComments": true
+    //, "strictNullChecks": true
+    //, "watch": true
+  },
+  //"compileOnSave": false,
+  "exclude": "dist",
+  "files": [
+    "typings/index.d.ts",
+    "typings/extensions/index.d.ts",
+    "src/boot/main.ts",
+    "src/extensions/CreepEx.ts"
+  ],
+  "bundles": {
+    "main": {
+      "files": [
+        "src/boot/main.ts"
+      ]
+    }
+  }
+}
