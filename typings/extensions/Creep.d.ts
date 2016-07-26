@@ -32,4 +32,6 @@ interface Creep {
 
     // Debug methods
     showTarget(): void;
+    enableLogging(enabled?: boolean): void;
+    log(msg: string): void;
 }

@@ -17,10 +17,8 @@ export class Spawner {
 
     public static spawnCreep(role: CreepRole, spawn: Spawn): CreepObject {
         if (spawn && !spawn.spawning && role != undefined) {
-            var currentEnergy = Spawner.getAvailableExtensionEnergy(spawn.room);
-            currentEnergy += spawn.energy;
-
-            if (currentEnergy < spawn.energyCapacity) {
+            var currentEnergy = spawn.room.energyAvailable;
+            if (currentEnergy < spawn.room.energyCapacityAvailable * 0.5) {
                 return null;
             }
 
@@ -30,22 +28,19 @@ export class Spawner {
                 case CreepRole.Harvester:
                     partConfigs.push(new Spawner.PartConfig(WORK, 1));
                     partConfigs.push(new Spawner.PartConfig(MOVE, 1, 1, 1));
-                    partConfigs.push(new Spawner.PartConfig(CARRY, 1, 1, 1));
-                    partConfigs.push(new Spawner.PartConfig(ATTACK, 1, 0, 1));
+                    partConfigs.push(new Spawner.PartConfig(CARRY, 1, 1, 2));
                     break;
 
                 case CreepRole.Builder:
                     partConfigs.push(new Spawner.PartConfig(WORK, 4));
-                    partConfigs.push(new Spawner.PartConfig(MOVE, 6));
+                    partConfigs.push(new Spawner.PartConfig(MOVE, 8));
                     partConfigs.push(new Spawner.PartConfig(CARRY, 4));
-                    partConfigs.push(new Spawner.PartConfig(ATTACK, 1, 0, 1));
                     break;
 
                 case CreepRole.Upgrader:
                     partConfigs.push(new Spawner.PartConfig(WORK, 4));
-                    partConfigs.push(new Spawner.PartConfig(MOVE, 6));
+                    partConfigs.push(new Spawner.PartConfig(MOVE, 8));
                     partConfigs.push(new Spawner.PartConfig(CARRY, 4));
-                    partConfigs.push(new Spawner.PartConfig(ATTACK, 1, 0, 1));
                     break;
 
                 case CreepRole.Carrier:
@@ -57,7 +52,7 @@ export class Spawner {
             let nextId = Spawner.getNextId(role);
             let name = Config.RoleToString[role] + "_" + nextId;
             let memory = { role: role, state: CreepState.Idle, roleId: nextId };
-            let body = Spawner.getBestBody(Math.min(currentEnergy, 600), partConfigs);
+            let body = Spawner.getBestBody(currentEnergy, partConfigs);
 
             if (body) {
                 let spawnResponse = spawn.createCreep(body, name, memory);
@@ -147,7 +142,7 @@ export class Spawner {
         return body
     }
 
-    private static getAvailableExtensionEnergy(room: Room): number {
+    private static getAvailableExtensionEnergy(room: Room): {} {
         var sum = 0;
 
         room.find<StructureExtension>(FIND_MY_STRUCTURES, {

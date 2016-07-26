@@ -1,5 +1,5 @@
 ﻿import {CreepObject} from "./CreepObject";
-import {GameManager} from "./../Managers/GameManager";
+import {RoomManager} from "./../Managers/RoomManager";
 
 export class CreepHarvester extends CreepObject {
     constructor(creep: Creep) {
@@ -18,11 +18,11 @@ export class CreepHarvester extends CreepObject {
 
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
-                    let target = this.getOrSetTarget<Structure>(() => {
+                    let target = this.getOrSetTarget<Structure>((o: CreepObject) => {
                         let storage: Structure;
-
-                        if (GameManager.roomManagers[creep.room.name].hasRole(CreepRole.Carrier)) {
-                            storage = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                        
+                        if (RoomManager.roomManagers[o.creep.room.name].hasRole(CreepRole.Carrier)) {
+                            storage = o.creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
                                 filter: (s: Storage | Container) => {
                                     return (
                                         s.structureType === STRUCTURE_CONTAINER ||
@@ -33,7 +33,7 @@ export class CreepHarvester extends CreepObject {
                         }
 
                         if (!storage) {
-                            storage = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                            storage = o.creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
                                 filter: (structure: Extension | Spawn | Tower) => {
                                     return (
                                         structure.structureType === STRUCTURE_EXTENSION ||

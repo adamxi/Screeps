@@ -5,8 +5,6 @@ import {GameObject} from "./../GameObjects/GameObject";
 import {CreepFactory} from "./../Util/CreepFactory";
 
 export class GameManager {
-    public static roomManagers: { [id: string]: RoomManager; } = {}; 
-
     public static init(): void {
         console.log("Scripts reloaded");
 
@@ -26,15 +24,15 @@ export class GameManager {
 
         for (let i in Game.rooms) {
             var roomManager = new RoomManager(Game.rooms[i]);
-            GameManager.roomManagers[roomManager.roomName] = roomManager;
+            RoomManager.roomManagers[roomManager.roomName] = roomManager;
         }
     }
 
     public static update(): void {
         GameObject.update();
 
-        for (let i in GameManager.roomManagers) {
-            GameManager.roomManagers[i].update();
+        for (let i in RoomManager.roomManagers) {
+            RoomManager.roomManagers[i].update();
         }
     }
 }

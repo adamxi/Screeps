@@ -9,6 +9,13 @@ import {DefenceManager} from "./../Managers/DefenceManager";
 import {MathHelper} from "./../Util/MathHelper";
 
 export class RoomManager {
+    public static roomManagers: { [id: string]: RoomManager; } = {}; 
+
+    //public static findByCreepName(creepName: string): RoomManager {
+
+    //    return null;
+    //}
+
     public room: Room;
     public roomName: string;
     public creepConstraint: CreepConstraint[];
@@ -32,9 +39,9 @@ export class RoomManager {
 
     private initCreepConstraints() {
         this.creepConstraint = [];
-        this.creepConstraint[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 5);
-        this.creepConstraint[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 3);
-        this.creepConstraint[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 6);
+        this.creepConstraint[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 4);
+        this.creepConstraint[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 2);
+        this.creepConstraint[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 5);
         this.creepConstraint[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2, r => {
             return this.room.find(FIND_STRUCTURES, {
                 filter: (s: Storage | Container) => {
@@ -111,7 +118,7 @@ export class RoomManager {
 
     public getNextSpawn(): Spawn {
         for (let n in Game.spawns) {
-            let spawn: Spawn = Game.spawns[n];
+            let spawn = Game.spawns[n];
             if (!spawn.spawning && spawn.room.name === this.roomName) {
                 return spawn;
             }
@@ -133,6 +140,7 @@ export class RoomManager {
                 let creepObj = Spawner.spawnCreep(this.nextCreepRole, this.getNextSpawn());
 
                 if (creepObj) {
+                    this.creepConstraint[this.nextCreepRole].populationCount++;
                     this.nextCreepRole = this.getNextRole();
                 }
             }

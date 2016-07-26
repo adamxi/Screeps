@@ -6,6 +6,7 @@ export module CreepEx {
     var KEY_STATE = "state";
     var KEY_ROLE = "role";
     var KEY_TARGET = "targetInfo";
+    var KEY_LOG = "showLog";
 
     Creep.prototype.setState = function (state: CreepState, clearTarget = true): void {
         if (clearTarget) {
@@ -62,7 +63,7 @@ export module CreepEx {
         this.clearMemory(KEY_TARGET);
     }
 
-    Creep.prototype.setMemory = function (key: string, value: any, override = false): void {
+    Creep.prototype.setMemory = function (key: string, value: any, override = true): void {
         if (override || !this.memory[key]) {
             this.memory[key] = value;
         }
@@ -84,7 +85,22 @@ export module CreepEx {
                 target.room.createFlag(target.pos, "debug", COLOR_PURPLE, COLOR_PURPLE);
             }
         }
-        
+
         console.log(this.name + " | State: " + CreepState[this.getState()]);
+    }
+
+    Creep.prototype.enableLogging = function (enabled = true): void {
+        if (enabled) {
+            this.memory[KEY_LOG] = true;
+        }
+        else {
+            delete this.memory[KEY_LOG];
+        }
+    }
+
+    Creep.prototype.log = function (msg: string): void {
+        if (this.memory[KEY_LOG]) {
+            console.log((this as Creep).name + " | " + msg);
+        }
     }
 }

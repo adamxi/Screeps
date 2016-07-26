@@ -1,5 +1,5 @@
 ﻿import {CreepObject} from "./CreepObject";
-import {GameManager} from "./../Managers/GameManager";
+import {RoomManager} from "./../Managers/RoomManager";
 import {ConstructionManager} from "./../Managers/ConstructionManager";
 
 export class CreepBuilder extends CreepObject {
@@ -43,8 +43,8 @@ export class CreepBuilder extends CreepObject {
 
             case CreepState.Building:
                 if (creep.carry.energy > 0) {
-                    let target = this.getOrSetTarget<Structure | ConstructionSite>(() => {
-                        let resp = GameManager.roomManagers[creep.room.name].constructionManager.getNext();
+                    let target = this.getOrSetTarget<Structure | ConstructionSite>((o: CreepObject) => {
+                        let resp = RoomManager.roomManagers[o.creep.room.name].constructionManager.getNext();
                         return {
                             target: resp != null ? resp.structure : null,
                             params: { targetHits: resp != null ? resp.targetHits : null }
@@ -71,7 +71,7 @@ export class CreepBuilder extends CreepObject {
                         }
                         
                         creep.clearTarget();
-                        GameManager.roomManagers[creep.room.name].constructionManager.completed(target.id);
+                        RoomManager.roomManagers[creep.room.name].constructionManager.completed(target.id, creep);
                         break;
                     }
 

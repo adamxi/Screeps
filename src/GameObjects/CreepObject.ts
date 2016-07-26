@@ -1,5 +1,6 @@
 ﻿import {GameObject} from "./GameObject";
 import {ResourceManager} from "./../Managers/ResourceManager";
+import {RoomManager} from "./../Managers/RoomManager";
 import {ErrorHelper} from "./../Util/ErrorHelper";
 
 export abstract class CreepObject extends GameObject {
@@ -11,7 +12,7 @@ export abstract class CreepObject extends GameObject {
         this.creep = creep;
         this.creepName = creep.name;
 
-        creep.setMemory("state", initialState);
+        creep.setMemory("state", initialState, false);
         creep.setRole(role);
     }
 
@@ -23,13 +24,19 @@ export abstract class CreepObject extends GameObject {
 
     protected doHarvest(): boolean {
         if (this.creep.carry.energy < this.creep.carryCapacity) {
-            let target = this.getOrSetTarget<Source | Mineral>(() => {
-                return { target: this.acquireSource() };
+            let target = this.getOrSetTarget<Source | Mineral>((o: CreepObject) => {
+                let source = o.acquireSource();
+                return { target: source };
             });
 
             if (target) {
-                if (this.creep.harvest(target) === ERR_NOT_IN_RANGE) {
-                    this.creep.moveTo(target);
+                let harvestResp = this.creep.harvest(target);
+                this.creep.log("Harvest: " + ErrorHelper.getErrorString(harvestResp));
+                switch (harvestResp) {
+                    case ERR_NOT_IN_RANGE:
+                        let moveResp = this.creep.moveTo(target);
+                        this.creep.log("Move: " + ErrorHelper.getErrorString(moveResp));
+                        break;
                 }
             }
             return true;
@@ -39,8 +46,8 @@ export abstract class CreepObject extends GameObject {
     }
 
     protected getStorage(includeEmpty = false): Storage | Container {
-        return this.getOrSetTarget<Storage | Container>(() => {
-            let target = this.creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
+        return this.getOrSetTarget<Storage | Container>((o: CreepObject) => {
+            let target = o.creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
                 filter: (c: Storage | Container) => {
                     return (
                         c.structureType === STRUCTURE_CONTAINER ||
@@ -71,11 +78,11 @@ export abstract class CreepObject extends GameObject {
         //this.update();
     }
 
-    protected getOrSetTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(func: () => { target: T, params?: {} }): T {
+    protected getOrSetTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(func: (o: CreepObject) => { target: T, params?: {} }): T {
         let target = this.creep.getTarget<T>();
 
         if (!target) {
-            let resp = func();
+            let resp = func(this);
             target = resp.target;
             this.creep.setTarget(resp.target, resp.params);
         }
@@ -91,7 +98,13 @@ export abstract class CreepObject extends GameObject {
         this.creep = Game.creeps[this.creepName];
         if (!this.creep) {
             this.dispose();
+        } else if (this.creep.ticksToLive === 1) {
+            this.willDie();
         }
+    }
+
+    public willDie(): void {
+        RoomManager.roomManagers[this.creep.room.name].creepConstraint[this.creep.getRole()].populationCount--;
     }
 }
 

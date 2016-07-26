@@ -2,7 +2,7 @@
 import {GameManager} from "./../Managers/GameManager";
 
 export class ConstructionManager {
-    private static ticksToRefresh = 30;
+    private static ticksToRefresh = 60;
     private timer: number;
 
     private damagedStructureIds: string[] = [];
@@ -41,11 +41,11 @@ export class ConstructionManager {
         return null;
     }
 
-    public completed(objId: string): void {
+    public completed(objId: string, creep:Creep): void {
         for (let i = this.criticalStructureIds.length; --i >= 0;) {
             if (this.criticalStructureIds[i] === objId) {
                 let obj = Game.getObjectById<Structure>(objId);
-                console.log("Removed critical | index: " + i + " | hits: " + obj.hits + " | type: " + obj.structureType + " | id: " + objId);
+                console.log("Removed critical | index: " + i + " | hits: " + obj.hits + " | type: " + obj.structureType + " | id: " + objId + " | creep: " + creep.name);
                 this.criticalStructureIds.splice(i, 1);
                 return;
             }
@@ -53,7 +53,7 @@ export class ConstructionManager {
 
         for (let i = this.damagedStructureIds.length; --i >= 0;) {
             if (this.damagedStructureIds[i] === objId) {
-                console.log("Removed damaged: " + i + " " + objId);
+                console.log("Removed damaged: " + i + " " + objId + " | creep: " + creep.name);
                 this.damagedStructureIds.splice(i, 1);
                 return;
             }

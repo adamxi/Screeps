@@ -31,19 +31,30 @@ export class CreepCarrier extends CreepObject {
 
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
-                    let targets = creep.room.find<Extension | Spawn | Tower>(FIND_STRUCTURES, {
-                        filter: (structure: Extension | Spawn | Tower) => {
-                            return (
-                                structure.structureType === STRUCTURE_EXTENSION ||
-                                structure.structureType === STRUCTURE_SPAWN ||
-                                structure.structureType === STRUCTURE_TOWER) &&
-                                structure.energy < structure.energyCapacity;
-                        }
+                    let target = this.getOrSetTarget<Structure>((o: CreepObject) => {
+                        let structure = o.creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                            filter: (structure: Extension | Spawn | Tower) => {
+                                return (
+                                    structure.structureType === STRUCTURE_EXTENSION ||
+                                    structure.structureType === STRUCTURE_SPAWN ||
+                                    structure.structureType === STRUCTURE_TOWER) &&
+                                    structure.energy < structure.energyCapacity;
+                            }
+                        });
+
+                        return { target: structure }
                     });
 
-                    if (targets.length > 0) {
-                        if (creep.transfer(targets[0], RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                            creep.moveTo(targets[0]);
+                    if (target) {
+                        switch (creep.transfer(target, RESOURCE_ENERGY)) {
+                            case OK:
+                            case ERR_FULL:
+                                creep.clearTarget();
+                                break;
+
+                            case ERR_NOT_IN_RANGE:
+                                creep.moveTo(target);
+                                break;
                         }
                     } else if (creep.carry.energy < creep.carryCapacity) {
                         this.setState(CreepState.Collecting);
