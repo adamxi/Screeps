@@ -6,6 +6,7 @@ GameManager.init();
 
 declare const module: any;
 module.exports.loop = function () {
+    //console.log("tick");
     GameManager.update();
 }
  

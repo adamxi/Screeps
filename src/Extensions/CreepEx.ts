@@ -9,6 +9,7 @@ export module CreepEx {
     var KEY_LOG = "showLog";
 
     Creep.prototype.setState = function (state: CreepState, clearTarget = true): void {
+        (this as Creep).log("Setting State: " + CreepState[state].toString() + " | clearTarget: " + clearTarget);
         if (clearTarget) {
             this.clearTarget();
         }
@@ -49,18 +50,23 @@ export module CreepEx {
         return null;
     }
 
-    Creep.prototype.setTarget = function (object: Source | Resource | Mineral | Creep | Structure | ConstructionSite, params?: {}): void {
+    Creep.prototype.setTarget = function <T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(target: T, params?: {}): T {
         // Note: Flags do not have an id
-        if (object) {
+        if (target) {
+            (this as Creep).log("Set target: " + target.id);
             this.memory[KEY_TARGET] = {
-                id: object.id,
+                id: target.id,
                 params: params,
             }
         }
+        return target;
     }
 
     Creep.prototype.clearTarget = function (): void {
-        this.clearMemory(KEY_TARGET);
+        if (this.memory[KEY_TARGET]) {
+            (this as Creep).log("Clear target: " + this.memory[KEY_TARGET].id);
+            this.clearMemory(KEY_TARGET);
+        }
     }
 
     Creep.prototype.setMemory = function (key: string, value: any, override = true): void {
@@ -86,14 +92,13 @@ export module CreepEx {
             }
         }
 
-        console.log(this.name + " | State: " + CreepState[this.getState()]);
+        console.log(this.name + " | State: " + CreepState[this.getState()] + " | Target: " + target);
     }
 
-    Creep.prototype.enableLogging = function (enabled = true): void {
-        if (enabled) {
+    Creep.prototype.debug = function (): void {
+        if (!this.memory[KEY_LOG]) {
             this.memory[KEY_LOG] = true;
-        }
-        else {
+        } else {
             delete this.memory[KEY_LOG];
         }
     }

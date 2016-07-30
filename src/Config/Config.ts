@@ -20,7 +20,7 @@
         structurePriority[STRUCTURE_POWER_SPAWN] = { threshold: 500, critical: 500 };
         structurePriority[STRUCTURE_TERMINAL] = { threshold: 500, critical: 500 };
 
-        structurePriority[STRUCTURE_RAMPART] = { threshold: 0, critical: 40000 };
+        structurePriority[STRUCTURE_RAMPART] = { threshold: 50000, critical: 40000 };
         structurePriority[STRUCTURE_WALL] = { threshold: 0, critical: 40000 };
     }
 }

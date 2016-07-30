@@ -1,4 +1,5 @@
 ﻿import {CreepObject} from "./CreepObject";
+import {ErrorHelper} from "./../Util/ErrorHelper";
 
 export class CreepCarrier extends CreepObject {
     constructor(creep: Creep) {
@@ -6,15 +7,17 @@ export class CreepCarrier extends CreepObject {
     }
 
     public update(): void {
-        var creep = this.creep;
+        var creep = this.Creep;
 
         switch (creep.getState()) {
             case CreepState.Collecting:
                 if (creep.carry.energy < creep.carryCapacity) {
-                    let storage = this.getStorage(true);
+                    let storage = this.getStorage();
 
                     if (storage) {
-                        switch (creep.withdraw(storage, RESOURCE_ENERGY)) {
+                        // NOTE: creep.carry.energy is not updated before next tick
+                        let resp = creep.withdraw(storage, RESOURCE_ENERGY);
+                        switch (resp) {
                             case OK:
                                 this.setState(CreepState.Working);
                                 break;
@@ -22,17 +25,27 @@ export class CreepCarrier extends CreepObject {
                             case ERR_NOT_IN_RANGE:
                                 creep.moveTo(storage);
                                 break;
+
+                            case ERR_NOT_ENOUGH_ENERGY:
+                                creep.clearTarget();
+                                break;
+
+                            default:
+                                console.log(creep.name + " | withdraw: " + ErrorHelper.getErrorString(resp));
+                                break;
                         }
                     }
+                } else {
+                    this.setState(CreepState.Working);
+                    this.update();
                 }
-
-                this.setState(CreepState.Working);
                 break;
 
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
-                    let target = this.getOrSetTarget<Structure>((o: CreepObject) => {
-                        let structure = o.creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                    let target = creep.getTarget<Extension | Spawn | Tower>();
+                    if (!target) {
+                        target = creep.pos.findClosestByRange<Extension | Spawn | Tower>(FIND_STRUCTURES, {
                             filter: (structure: Extension | Spawn | Tower) => {
                                 return (
                                     structure.structureType === STRUCTURE_EXTENSION ||
@@ -40,13 +53,17 @@ export class CreepCarrier extends CreepObject {
                                     structure.structureType === STRUCTURE_TOWER) &&
                                     structure.energy < structure.energyCapacity;
                             }
-                        });
-
-                        return { target: structure }
-                    });
+                        })
+                        creep.setTarget(target);
+                    }
 
                     if (target) {
-                        switch (creep.transfer(target, RESOURCE_ENERGY)) {
+                        if (target.energy === target.energyCapacity) {
+                            creep.clearTarget();
+                            break;
+                        }
+                        let resp = creep.transfer(target, RESOURCE_ENERGY);
+                        switch (resp) {
                             case OK:
                             case ERR_FULL:
                                 creep.clearTarget();
@@ -54,6 +71,10 @@ export class CreepCarrier extends CreepObject {
 
                             case ERR_NOT_IN_RANGE:
                                 creep.moveTo(target);
+                                break;
+
+                            default:
+                                console.log(creep.name + " | transfer: " + ErrorHelper.getErrorString(resp));
                                 break;
                         }
                     } else if (creep.carry.energy < creep.carryCapacity) {

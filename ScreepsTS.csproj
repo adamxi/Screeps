@@ -37,7 +37,6 @@
     <TypeScriptCompile Include="src\Managers\ConstructionManager.ts" />
     <TypeScriptCompile Include="src\Managers\DefenceManager.ts" />
     <TypeScriptCompile Include="src\Managers\GameManager.ts" />
-    <TypeScriptCompile Include="src\Util\Cache.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepBuilder.ts" />
     <TypeScriptCompile Include="src\Util\CreepFactory.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepHarvester.ts" />

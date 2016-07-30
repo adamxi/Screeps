@@ -1,6 +1,7 @@
 ﻿import {CreepObject} from "./CreepObject";
 import {RoomManager} from "./../Managers/RoomManager";
 import {ConstructionManager} from "./../Managers/ConstructionManager";
+import {ErrorHelper} from "./../Util/ErrorHelper";
 
 export class CreepBuilder extends CreepObject {
     constructor(creep: Creep) {
@@ -8,7 +9,7 @@ export class CreepBuilder extends CreepObject {
     }
 
     public update(): void {
-        var creep = this.creep;
+        var creep = this.Creep;
 
         switch (creep.getState()) {
             case CreepState.Harvesting:
@@ -22,7 +23,8 @@ export class CreepBuilder extends CreepObject {
                     let storage = this.getStorage();
 
                     if (storage) {
-                        switch (creep.withdraw(storage, RESOURCE_ENERGY)) {
+                        let resp = creep.withdraw(storage, RESOURCE_ENERGY);
+                        switch (resp) {
                             case OK:
                                 this.setState(CreepState.Building);
                                 break;
@@ -30,48 +32,78 @@ export class CreepBuilder extends CreepObject {
                             case ERR_NOT_IN_RANGE:
                                 creep.moveTo(storage);
                                 break;
+
+                            case ERR_NOT_ENOUGH_ENERGY:
+                                creep.clearTarget();
+                                break;
+
+                            default:
+                                console.log(creep.name + " | withdraw: " + ErrorHelper.getErrorString(resp));
+                                break;
                         }
                     } else {
                         this.setState(CreepState.Harvesting);
-                        this.update();
                         break;
                     }
+                } else {
+                    this.setState(CreepState.Building);
                 }
-
-                this.setState(CreepState.Building);
                 break;
 
             case CreepState.Building:
                 if (creep.carry.energy > 0) {
-                    let target = this.getOrSetTarget<Structure | ConstructionSite>((o: CreepObject) => {
-                        let resp = RoomManager.roomManagers[o.creep.room.name].constructionManager.getNext();
-                        return {
-                            target: resp != null ? resp.structure : null,
-                            params: { targetHits: resp != null ? resp.targetHits : null }
-                        };
-                    });
+                    let target = creep.getTarget<Structure | ConstructionSite>();
+                    if (!target) {
+                        let resp = RoomManager.roomManagers[creep.room.name].constructionManager.getNext();
+                        if (resp) {
+                            target = creep.setTarget(resp.structure, { targetHits: resp.targetHits });
+                        }
+                    }
 
                     if (target) {
                         if (target instanceof Structure) {
                             let targetHits = creep.getTargetInfo().targetHits;
                             if (target.hits < targetHits) {
-                                if (creep.repair(target) === ERR_NOT_IN_RANGE) {
-                                    creep.moveTo(target);
+                                let resp = creep.repair(target);
+
+                                switch (resp) {
+                                    case OK:
+                                        break;
+
+                                    case ERR_NOT_IN_RANGE:
+                                        creep.moveTo(target);
+                                        break;
+
+                                    default:
+                                        console.log(creep.name + " | repair: " + ErrorHelper.getErrorString(resp));
+                                        break;
                                 }
-                                break;
+                            } else {
+                                creep.clearTarget();
+                                RoomManager.roomManagers[creep.room.name].constructionManager.completed(target.id, creep);
                             }
 
                         } else if (target instanceof ConstructionSite) {
                             if (target.progress < target.progressTotal) {
-                                if (creep.build(target) === ERR_NOT_IN_RANGE) {
-                                    creep.moveTo(target)
+                                let resp = creep.build(target);
+
+                                switch (resp) {
+                                    case OK:
+                                        break;
+
+                                    case ERR_NOT_IN_RANGE:
+                                        creep.moveTo(target);
+                                        break;
+
+                                    default:
+                                        console.log(creep.name + " | build: " + ErrorHelper.getErrorString(resp));
+                                        break;
                                 }
-                                break;
+                            } else {
+                                creep.clearTarget();
+                                RoomManager.roomManagers[creep.room.name].constructionManager.completed(target.id, creep);
                             }
                         }
-                        
-                        creep.clearTarget();
-                        RoomManager.roomManagers[creep.room.name].constructionManager.completed(target.id, creep);
                         break;
                     }
 

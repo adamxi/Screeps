@@ -1,5 +1,6 @@
 ﻿import {CreepObject} from "./CreepObject";
 import {RoomManager} from "./../Managers/RoomManager";
+import {ErrorHelper} from "./../Util/ErrorHelper"
 
 export class CreepHarvester extends CreepObject {
     constructor(creep: Creep) {
@@ -7,22 +8,22 @@ export class CreepHarvester extends CreepObject {
     }
 
     public update(): void {
-        var creep = this.creep;
+        var creep = this.Creep;
 
         switch (creep.getState()) {
             case CreepState.Harvesting:
                 if (!this.doHarvest()) {
                     this.setState(CreepState.Working);
+                    //this.update();
                 }
                 break;
 
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
-                    let target = this.getOrSetTarget<Structure>((o: CreepObject) => {
-                        let storage: Structure;
-                        
-                        if (RoomManager.roomManagers[o.creep.room.name].hasRole(CreepRole.Carrier)) {
-                            storage = o.creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                    let target = creep.getTarget<Structure>();
+                    if (!target) {
+                        if (RoomManager.roomManagers[creep.room.name].hasRole(CreepRole.Carrier)) {
+                            target = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
                                 filter: (s: Storage | Container) => {
                                     return (
                                         s.structureType === STRUCTURE_CONTAINER ||
@@ -30,10 +31,11 @@ export class CreepHarvester extends CreepObject {
                                         _.sum(s.store) < s.storeCapacity;
                                 }
                             });
+                            creep.setTarget(target);
                         }
 
-                        if (!storage) {
-                            storage = o.creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+                        if (!target) {
+                            target = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
                                 filter: (structure: Extension | Spawn | Tower) => {
                                     return (
                                         structure.structureType === STRUCTURE_EXTENSION ||
@@ -42,30 +44,36 @@ export class CreepHarvester extends CreepObject {
                                         structure.energy < structure.energyCapacity;
                                 }
                             });
+                            creep.setTarget(target);
                         }
-
-                        return { target: storage };
-                    });
+                    }
 
                     if (target) {
-                        switch (creep.transfer(target, RESOURCE_ENERGY)) {
-                            case ERR_NOT_IN_RANGE:
-                                creep.moveTo(target);
-                                break;
-
+                        let resp = creep.transfer(target, RESOURCE_ENERGY);
+                        switch (resp) {
                             case OK:
                             case ERR_FULL:
                                 creep.clearTarget();
                                 break;
+
+                            case ERR_NOT_IN_RANGE:
+                                creep.moveTo(target);
+                                break;
+
+                            default:
+                                console.log(creep.name + " | transfer: " + ErrorHelper.getErrorString(resp));
+                                break;
                         }
                     } else if (creep.carry.energy < creep.carryCapacity) {
                         this.setState(CreepState.Harvesting);
+                        this.update();
                     } else {
                         this.moveToIdlePos();
                     }
 
                 } else {
                     this.setState(CreepState.Harvesting);
+                    this.update();
                 }
                 break;
         }

@@ -5,6 +5,7 @@
     public static update(): void {
         for (let i = GameObject.gameObjects.length; --i >= 0;) {
             let obj = GameObject.gameObjects[i];
+            
             obj.load();
             if (!obj.disposed) {
                 obj.update();

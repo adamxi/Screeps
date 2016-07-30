@@ -4,38 +4,73 @@ import {RoomManager} from "./../Managers/RoomManager";
 import {ErrorHelper} from "./../Util/ErrorHelper";
 
 export abstract class CreepObject extends GameObject {
-    public creep: Creep;
-    private creepName: string;
+    protected creepName: string;
 
     constructor(creep: Creep, role: CreepRole, initialState: CreepState) {
         super();
-        this.creep = creep;
         this.creepName = creep.name;
 
-        creep.setMemory("state", initialState, false);
-        creep.setRole(role);
+        this.Creep.setMemory("state", initialState, false);
+        this.Creep.setRole(role);
     }
 
-    private acquireSource(): Source {
-        let source = ResourceManager.getBestSource(this.creep);
-        this.creep.setTarget(source);
-        return source;
+    public get Creep(): Creep {
+        return Game.creeps[this.creepName];
+    }
+
+    private getSource(): Source {
+        let target = ResourceManager.getBestSource2(this.Creep);
+        return this.Creep.setTarget(target);
+    }
+
+    protected getStorage(includeEmpty = false): Storage | Container {
+        let target = this.Creep.getTarget<Storage | Container>();
+        if (!target) {
+            target = this.Creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
+                filter: (c: Storage | Container) => {
+                    return (
+                        c.structureType === STRUCTURE_CONTAINER ||
+                        c.structureType === STRUCTURE_STORAGE) &&
+                        (includeEmpty ? c.store[RESOURCE_ENERGY] >= 0 : c.store[RESOURCE_ENERGY] > 0);
+                }
+            });
+            this.Creep.setTarget(target)
+        }
+        return target;
     }
 
     protected doHarvest(): boolean {
-        if (this.creep.carry.energy < this.creep.carryCapacity) {
-            let target = this.getOrSetTarget<Source | Mineral>((o: CreepObject) => {
-                let source = o.acquireSource();
-                return { target: source };
-            });
+        let creep = this.Creep;
+        if (creep.carry.energy < creep.carryCapacity) {
+            let target = creep.getTarget<Source | Mineral>();
+            if (!target) {
+                target = creep.setTarget(this.getSource());
+            }
 
             if (target) {
-                let harvestResp = this.creep.harvest(target);
-                this.creep.log("Harvest: " + ErrorHelper.getErrorString(harvestResp));
-                switch (harvestResp) {
+                let resp = creep.harvest(target);
+                switch (resp) {
+                    case OK:
+                        break;
+
                     case ERR_NOT_IN_RANGE:
-                        let moveResp = this.creep.moveTo(target);
-                        this.creep.log("Move: " + ErrorHelper.getErrorString(moveResp));
+                        let moveResp = creep.moveTo(target);
+                        switch (moveResp) {
+                            case ERR_NO_PATH:
+                                creep.clearTarget();
+                                break;
+
+                            //default:
+                            //    console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(resp));
+                            //    break;
+                        }
+                        break;
+
+                    case ERR_NOT_ENOUGH_ENERGY:
+                        return false;
+
+                    default:
+                        console.log(creep.name + " | harvest: " + ErrorHelper.getErrorString(resp));
                         break;
                 }
             }
@@ -45,23 +80,9 @@ export abstract class CreepObject extends GameObject {
         return false;
     }
 
-    protected getStorage(includeEmpty = false): Storage | Container {
-        return this.getOrSetTarget<Storage | Container>((o: CreepObject) => {
-            let target = o.creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
-                filter: (c: Storage | Container) => {
-                    return (
-                        c.structureType === STRUCTURE_CONTAINER ||
-                        c.structureType === STRUCTURE_STORAGE) &&
-                        (includeEmpty ? c.store[RESOURCE_ENERGY] >= 0 : c.store[RESOURCE_ENERGY] > 0);
-                }
-            });
-
-            return { target: target }
-        });
-    }
-
     protected moveToIdlePos(): boolean {
-        var creep = this.creep;
+        var creep = this.Creep;
+        creep.log("Moving to idle position");
         creep.clearTarget();
         var flag = Game.flags[creep.room.name + "_idle"];
 
@@ -74,20 +95,7 @@ export abstract class CreepObject extends GameObject {
     }
 
     protected setState(state: CreepState, clearTarget = true): void {
-        this.creep.setState(state, clearTarget);
-        //this.update();
-    }
-
-    protected getOrSetTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(func: (o: CreepObject) => { target: T, params?: {} }): T {
-        let target = this.creep.getTarget<T>();
-
-        if (!target) {
-            let resp = func(this);
-            target = resp.target;
-            this.creep.setTarget(resp.target, resp.params);
-        }
-
-        return target;
+        this.Creep.setState(state, clearTarget);
     }
 
     protected doDispose(): void {
@@ -95,16 +103,16 @@ export abstract class CreepObject extends GameObject {
     }
 
     public load(): void {
-        this.creep = Game.creeps[this.creepName];
-        if (!this.creep) {
+        //this.Creep = Game.creeps[this.creepName];
+        if (!this.Creep) {
             this.dispose();
-        } else if (this.creep.ticksToLive === 1) {
+        } else if (this.Creep.ticksToLive === 1) {
             this.willDie();
         }
     }
 
     public willDie(): void {
-        RoomManager.roomManagers[this.creep.room.name].creepConstraint[this.creep.getRole()].populationCount--;
+        RoomManager.roomManagers[this.Creep.room.name].CreepConstraints[this.Creep.getRole()].populationCount--;
     }
 }
 

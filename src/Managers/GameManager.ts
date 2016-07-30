@@ -5,16 +5,14 @@ import {GameObject} from "./../GameObjects/GameObject";
 import {CreepFactory} from "./../Util/CreepFactory";
 
 export class GameManager {
+    private static ticksToRefresh = 60;
+    private static timer = 0;
+
     public static init(): void {
         console.log("Scripts reloaded");
 
         Config.initialize();
 
-        //for (var i in Memory.creeps) {
-        //    if (!Game.creeps[i]) {
-        //        delete Memory.creeps[i];
-        //    }
-        //}
         for (let i in Game.creeps) {
             let obj = CreepFactory.load(Game.creeps[i]);
             if (obj) {
@@ -22,6 +20,7 @@ export class GameManager {
             }
         }
 
+        RoomManager.roomManagers = {};
         for (let i in Game.rooms) {
             var roomManager = new RoomManager(Game.rooms[i]);
             RoomManager.roomManagers[roomManager.roomName] = roomManager;
@@ -29,10 +28,22 @@ export class GameManager {
     }
 
     public static update(): void {
+        if (Game.time - GameManager.timer >= GameManager.ticksToRefresh) {
+            GameManager.timer = Game.time;
+            for (var i in Memory.creeps) {
+                if (!Game.creeps[i]) {
+                    delete Memory.creeps[i];
+                }
+            }
+        }
+
         GameObject.update();
 
+        debugger;
         for (let i in RoomManager.roomManagers) {
-            RoomManager.roomManagers[i].update();
+            if (RoomManager.roomManagers.hasOwnProperty(i)) {
+                RoomManager.roomManagers[i].update();
+            }
         }
     }
 }

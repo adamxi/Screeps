@@ -18,7 +18,7 @@ export class Spawner {
     public static spawnCreep(role: CreepRole, spawn: Spawn): CreepObject {
         if (spawn && !spawn.spawning && role != undefined) {
             var currentEnergy = spawn.room.energyAvailable;
-            if (currentEnergy < spawn.room.energyCapacityAvailable * 0.5) {
+            if (currentEnergy < 300) {
                 return null;
             }
 
@@ -26,20 +26,20 @@ export class Spawner {
 
             switch (role) {
                 case CreepRole.Harvester:
-                    partConfigs.push(new Spawner.PartConfig(WORK, 1));
-                    partConfigs.push(new Spawner.PartConfig(MOVE, 1, 1, 1));
+                    partConfigs.push(new Spawner.PartConfig(WORK, 4));
+                    partConfigs.push(new Spawner.PartConfig(MOVE, 1, 1));
                     partConfigs.push(new Spawner.PartConfig(CARRY, 1, 1, 2));
                     break;
 
                 case CreepRole.Builder:
-                    partConfigs.push(new Spawner.PartConfig(WORK, 4));
                     partConfigs.push(new Spawner.PartConfig(MOVE, 8));
+                    partConfigs.push(new Spawner.PartConfig(WORK, 4));
                     partConfigs.push(new Spawner.PartConfig(CARRY, 4));
                     break;
 
                 case CreepRole.Upgrader:
-                    partConfigs.push(new Spawner.PartConfig(WORK, 4));
                     partConfigs.push(new Spawner.PartConfig(MOVE, 8));
+                    partConfigs.push(new Spawner.PartConfig(WORK, 4));
                     partConfigs.push(new Spawner.PartConfig(CARRY, 4));
                     break;
 

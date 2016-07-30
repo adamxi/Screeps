@@ -9,41 +9,64 @@ import {DefenceManager} from "./../Managers/DefenceManager";
 import {MathHelper} from "./../Util/MathHelper";
 
 export class RoomManager {
-    public static roomManagers: { [id: string]: RoomManager; } = {}; 
+    public static roomManagers: { [id: string]: RoomManager; } = {};
 
-    //public static findByCreepName(creepName: string): RoomManager {
-
-    //    return null;
-    //}
-
-    public room: Room;
     public roomName: string;
-    public creepConstraint: CreepConstraint[];
-    private creepCount: number;
-    private creepConstraintInvTotalWeight: number;
-    private nextCreepRole: CreepRole;
+    //private creepCount: number;
+    //private creepConstraintInvTotalWeight: number;
     public constructionManager: ConstructionManager;
-    //public defenceManager: DefenceManager;
+    private creepConstraints: CreepConstraint[];
 
     constructor(room: Room) {
-        this.room = room;
         this.roomName = room.name;
         this.constructionManager = new ConstructionManager(room);
-        //this.defenceManager = new DefenceManager(room);
+        this.SpawnTimer = 30;
 
         this.initCreepConstraints();
-        this.nextCreepRole = this.getNextRole();
-
         ResourceManager.locateResources(room);
     }
 
+    private get Room(): Room {
+        return Game.rooms[this.roomName];
+    }
+
+    private get SpawnTimer(): number {
+        return this.Room.memory["timer"];
+    }
+    private set SpawnTimer(value: number) {
+        this.Room.memory["timer"] = value;
+    }
+
+    private get CreepCount(): number {
+        return this.Room.memory["creepCount"];
+    }
+    private set CreepCount(value: number) {
+        this.Room.memory["creepCount"] = value;
+    }
+
+    private get CreepConstraintInvTotalWeight(): number {
+        return this.Room.memory["creepConstraintInvTotalWeight"];
+    }
+    private set CreepConstraintInvTotalWeight(value: number) {
+        this.Room.memory["creepConstraintInvTotalWeight"] = value;
+    }
+
+    public get CreepConstraints(): CreepConstraint[] {
+        //return this.Room.memory["creepConstrains"];
+        return this.creepConstraints;
+    }
+    public set CreepConstraints(value: CreepConstraint[]) {
+        //this.Room.memory["creepConstrains"] = value;
+        this.creepConstraints = value;
+    }
+
     private initCreepConstraints() {
-        this.creepConstraint = [];
-        this.creepConstraint[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 4);
-        this.creepConstraint[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 2);
-        this.creepConstraint[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 5);
-        this.creepConstraint[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2, r => {
-            return this.room.find(FIND_STRUCTURES, {
+        this.CreepConstraints = [];
+        this.CreepConstraints[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 5);
+        this.CreepConstraints[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 4);
+        this.CreepConstraints[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 5);
+        this.CreepConstraints[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2, r => {
+            return this.Room.find(FIND_STRUCTURES, {
                 filter: (s: Storage | Container) => {
                     return (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE)
                 }
@@ -51,38 +74,37 @@ export class RoomManager {
         });
 
         var sum = 0;
-        for (let c in this.creepConstraint) {
-            sum += this.creepConstraint[c].populationWeight;
+        for (let c in this.CreepConstraints) {
+            sum += this.CreepConstraints[c].populationWeight;
         }
 
-        this.creepConstraintInvTotalWeight = 1 / sum;
+        this.CreepConstraintInvTotalWeight = 1 / sum;
     }
 
     public countPopulation(): void {
         // TODO: Does not count the creep types currently being spawned.
-        this.creepCount = 0;
+        this.CreepCount = 0;
 
-        for (let i = this.creepConstraint.length; --i >= 0;) {
-            this.creepConstraint[i].populationCount = 0;
+        for (let i = this.CreepConstraints.length; --i >= 0;) {
+            this.CreepConstraints[i].populationCount = 0;
         }
 
         for (let c in Game.creeps) {
             let creep = Game.creeps[c];
-
             if (creep.room.name === this.roomName) {
                 let role = creep.getRole();
-                let constraint = this.creepConstraint[role];
+                let constraint = this.CreepConstraints[role];
 
                 if (constraint) {
                     ++constraint.populationCount;
-                    ++this.creepCount;
+                    ++this.CreepCount;
                 }
             }
         }
     }
 
     public hasRole(role: CreepRole): boolean {
-        var c = this.creepConstraint[role];
+        var c = this.CreepConstraints[role];
         if (c) {
             return c.populationCount > 0;
         }
@@ -94,16 +116,16 @@ export class RoomManager {
 
         let targetConstraint: CreepConstraint;
         let maxScore = Number.NEGATIVE_INFINITY;
-        let len = this.creepConstraint.length;
+        let len = this.CreepConstraints.length;
 
         for (let i = 0; i < len; ++i) {
-            let constraint = this.creepConstraint[i];
+            let constraint = this.CreepConstraints[i];
             if (constraint.populationMax != -1 && constraint.populationCount >= constraint.populationMax ||
-                !constraint.spawnCondition(this.room)) {
+                !constraint.spawnCondition(this.Room)) {
                 continue;
             }
 
-            let score = MathHelper.getWeightedScore(constraint.populationWeight, this.creepConstraintInvTotalWeight, constraint.populationCount, this.creepCount);
+            let score = MathHelper.getWeightedScore(constraint.populationWeight, this.CreepConstraintInvTotalWeight, constraint.populationCount, this.CreepCount);
             if (score > maxScore) {
                 maxScore = score;
                 targetConstraint = constraint;
@@ -119,6 +141,7 @@ export class RoomManager {
     public getNextSpawn(): Spawn {
         for (let n in Game.spawns) {
             let spawn = Game.spawns[n];
+
             if (!spawn.spawning && spawn.room.name === this.roomName) {
                 return spawn;
             }
@@ -126,34 +149,37 @@ export class RoomManager {
         return null;
     }
 
+    public checkSpawn(): void {
+        let spawn = this.getNextSpawn();
+        
+        if (spawn) {
+            let role = this.getNextRole();
+            let creepObj = Spawner.spawnCreep(role, spawn);
+            if (creepObj) {
+                this.CreepConstraints[role].populationCount++;
+            }
+        }
+    }
+
     private load(): void {
-        this.room = Game.rooms[this.roomName] as Room;
+        //this.room = Game.rooms[this.roomName];
     }
 
     public update(): void {
-        this.load();
+        //this.load();
 
-        if (this.room) {
-            this.constructionManager.update(this.room);
-
-            if (this.nextCreepRole != undefined) {
-                let creepObj = Spawner.spawnCreep(this.nextCreepRole, this.getNextSpawn());
-
-                if (creepObj) {
-                    this.creepConstraint[this.nextCreepRole].populationCount++;
-                    this.nextCreepRole = this.getNextRole();
-                }
-            }
-
+        if (this.Room) {
+            this.checkSpawn();
+            this.constructionManager.update(this.Room);
             this.doDefence();
         }
     }
 
     private doDefence(): void {
-        var hostiles = this.room.find<Creep>(FIND_HOSTILE_CREEPS);
+        var hostiles = this.Room.find<Creep>(FIND_HOSTILE_CREEPS);
 
         if (hostiles.length > 0) {
-            var towers = this.room.find<StructureTower>(FIND_MY_STRUCTURES, {
+            var towers = this.Room.find<StructureTower>(FIND_MY_STRUCTURES, {
                 filter: { structureType: STRUCTURE_TOWER }
             });
 
