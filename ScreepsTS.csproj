@@ -30,6 +30,7 @@
     <Content Include="typings.json" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="snippets.txt" />
     <TypeScriptCompile Include="src\Config\Config.ts" />
     <TypeScriptCompile Include="src\Extensions\CreepEx.ts" />
     <TypeScriptCompile Include="src\Extensions\RoomObjectEx.ts" />

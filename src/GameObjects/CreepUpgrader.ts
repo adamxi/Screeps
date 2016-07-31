@@ -18,33 +18,12 @@ export class CreepUpgrader extends CreepObject {
 
             case CreepState.Collecting:
                 if (creep.carry.energy < creep.carryCapacity) {
-                    let storage = this.getStorage();
-
-                    if (storage) {
-                        let resp = creep.withdraw(storage, RESOURCE_ENERGY);
-                        switch (resp) {
-                            case OK:
-                                this.setState(CreepState.Upgrading);
-                                break;
-
-                            //case ERR_BUSY:
-                            //    break;
-
-                            case ERR_NOT_IN_RANGE:
-                                creep.moveTo(storage);
-                                break;
-
-                            case ERR_NOT_ENOUGH_ENERGY:
-                                creep.clearTarget();
-                                break;
-
-                            default:
-                                console.log(creep.name + " | withdraw: " + ErrorHelper.getErrorString(resp));
-                                break;
-                        }
-                    } else {
-                        this.setState(CreepState.Harvesting);
+                    if (this.doPickupEnergy(CreepState.Upgrading)) {
                         break;
+                    }
+
+                    if (!this.doWithdrawEnergy(CreepState.Upgrading)) {
+                        this.setState(CreepState.Harvesting);
                     }
                 } else {
                     this.setState(CreepState.Upgrading);
@@ -63,7 +42,14 @@ export class CreepUpgrader extends CreepObject {
                             creep.moveTo(creep.room.controller);
                             break;
 
-                        default:
+                        case ERR_NO_BODYPART:
+                            // Work part damaged - call for help
+                            break;
+
+                        case ERR_NOT_OWNER:
+                        case ERR_BUSY:
+                        case ERR_NOT_ENOUGH_RESOURCES:
+                        case ERR_INVALID_TARGET:
                             console.log(creep.name + " | upgradeController: " + ErrorHelper.getErrorString(resp));
                             break;
                     }

@@ -19,11 +19,10 @@ export abstract class CreepObject extends GameObject {
     }
 
     private getSource(): Source {
-        let target = ResourceManager.getBestSource2(this.Creep);
-        return this.Creep.setTarget(target);
+        return ResourceManager.getBestSource2(this.Creep);
     }
 
-    protected getStorage(includeEmpty = false): Storage | Container {
+    protected getStorage(): Storage | Container {
         let target = this.Creep.getTarget<Storage | Container>();
         if (!target) {
             target = this.Creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
@@ -31,13 +30,109 @@ export abstract class CreepObject extends GameObject {
                     return (
                         c.structureType === STRUCTURE_CONTAINER ||
                         c.structureType === STRUCTURE_STORAGE) &&
-                        (includeEmpty ? c.store[RESOURCE_ENERGY] >= 0 : c.store[RESOURCE_ENERGY] > 0);
+                        c.store[RESOURCE_ENERGY] > 0;
                 }
             });
             this.Creep.setTarget(target)
         }
         return target;
     }
+
+    protected getDroppedResource(): Resource {
+        let target = this.Creep.getTarget<Resource>();
+        if (!target) {
+            target = this.Creep.pos.findClosestByRange<Resource>(FIND_DROPPED_ENERGY, {
+                filter: (r: Resource) => {
+                    return (
+                        r.resourceType === RESOURCE_ENERGY &&
+                        r.amount >= 70);
+                }
+            });
+            this.Creep.setTarget(target)
+        }
+        return target;
+    }
+
+    protected doPickupEnergy(successState: CreepState): boolean {
+        let resource = this.getDroppedResource();
+
+        if (resource instanceof Resource) {
+            let creep = this.Creep;
+            let resp = creep.pickup(resource);
+
+            switch (resp) {
+                case OK:
+                    //creep.clearTarget();
+                    //break;
+
+                case ERR_FULL:
+                    this.setState(successState);
+                    break;
+
+                case ERR_NOT_IN_RANGE:
+                    creep.moveTo(resource);
+                    break;
+
+                case ERR_NOT_OWNER:
+                case ERR_BUSY:
+                case ERR_INVALID_TARGET:
+                    creep.clearTarget();
+                    break;
+            }
+            return true; // Return 'true' to indicate that the calling logic should stop.
+        }
+        return false; // Return 'false' to indicate that the calling logic should continue.
+    }
+
+    protected doWithdrawEnergy(successState: CreepState): boolean {
+        let storage = this.getStorage();
+
+        if (storage instanceof StructureStorage || storage instanceof StructureContainer) {
+            let creep = this.Creep;
+            let resp = creep.withdraw(storage, RESOURCE_ENERGY);
+            switch (resp) {
+                case OK:
+                case ERR_FULL:
+                    this.setState(successState);
+                    break;
+
+                case ERR_NOT_IN_RANGE:
+                    creep.moveTo(storage);
+                    break;
+
+                case ERR_NOT_OWNER:
+                case ERR_BUSY:
+                case ERR_NOT_ENOUGH_RESOURCES:
+                case ERR_INVALID_TARGET:
+                case ERR_INVALID_ARGS:
+                    creep.clearTarget();
+                    break;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    //protected doCollectEnergy(successState: CreepState): void {
+    //    let target = this.Creep.getTarget();
+
+    //    if (!target) {
+    //        target = this.getDroppedResource();
+    //        if (!target) {
+    //            target = this.getStorage();
+    //        }
+    //    }
+
+    //    if (target instanceof Resource) {
+    //        if (this.doPickupEnergy(successState)) {
+    //            return;
+    //        }
+    //    } else if (target instanceof StructureStorage || target instanceof StructureContainer) {
+    //        if (this.doWithdrawEnergy(successState)) {
+    //            return;
+    //        }
+    //    }
+    //}
 
     protected doHarvest(): boolean {
         let creep = this.Creep;
@@ -55,14 +150,16 @@ export abstract class CreepObject extends GameObject {
 
                     case ERR_NOT_IN_RANGE:
                         let moveResp = creep.moveTo(target);
+                        //console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(resp));
+
                         switch (moveResp) {
                             case ERR_NO_PATH:
                                 creep.clearTarget();
                                 break;
 
-                            //default:
-                            //    console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(resp));
-                            //    break;
+                            default:
+                                console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(resp));
+                                break;
                         }
                         break;
 
@@ -102,13 +199,17 @@ export abstract class CreepObject extends GameObject {
         delete Memory.creeps[this.creepName];
     }
 
-    public load(): void {
+    public load(): boolean {
         //this.Creep = Game.creeps[this.creepName];
         if (!this.Creep) {
             this.dispose();
+            return false;
+        } else if (this.Creep.spawning) {
+            return false;
         } else if (this.Creep.ticksToLive === 1) {
             this.willDie();
         }
+        return true;
     }
 
     public willDie(): void {

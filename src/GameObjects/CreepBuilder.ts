@@ -20,30 +20,12 @@ export class CreepBuilder extends CreepObject {
 
             case CreepState.Collecting:
                 if (creep.carry.energy < creep.carryCapacity) {
-                    let storage = this.getStorage();
-
-                    if (storage) {
-                        let resp = creep.withdraw(storage, RESOURCE_ENERGY);
-                        switch (resp) {
-                            case OK:
-                                this.setState(CreepState.Building);
-                                break;
-
-                            case ERR_NOT_IN_RANGE:
-                                creep.moveTo(storage);
-                                break;
-
-                            case ERR_NOT_ENOUGH_ENERGY:
-                                creep.clearTarget();
-                                break;
-
-                            default:
-                                console.log(creep.name + " | withdraw: " + ErrorHelper.getErrorString(resp));
-                                break;
-                        }
-                    } else {
-                        this.setState(CreepState.Harvesting);
+                    if (this.doPickupEnergy(CreepState.Building)) {
                         break;
+                    }
+
+                    if (!this.doWithdrawEnergy(CreepState.Building)) {
+                        this.setState(CreepState.Harvesting);
                     }
                 } else {
                     this.setState(CreepState.Building);

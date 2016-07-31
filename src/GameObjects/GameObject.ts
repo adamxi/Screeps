@@ -5,9 +5,8 @@
     public static update(): void {
         for (let i = GameObject.gameObjects.length; --i >= 0;) {
             let obj = GameObject.gameObjects[i];
-            
-            obj.load();
-            if (!obj.disposed) {
+
+            if (obj.load()) {
                 obj.update();
             }
         }
@@ -30,10 +29,7 @@
         GameObject.gameObjects.push(o);
     }
 
-    private disposed: boolean;
-
     public dispose(): void {
-        this.disposed = true;
         GameObject.disposableObjects.push(this);
     }
 
@@ -51,7 +47,7 @@
     /**
      * Virtual method.
      */
-    protected load(): void { }
+    protected load(): boolean { return true; }
 
     /**
      * Called when an object is updated.

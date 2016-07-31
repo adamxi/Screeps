@@ -5,13 +5,11 @@ export class CreepConstraint {
     public populationWeight: number;
     public populationCount: number;
     public populationMax: number;
-    public spawnCondition: (room: Room) => boolean;
 
-    constructor(role: CreepRole, populationWeight: number, populationMax: number = -1, spawnCondition: (room: Room) => boolean = () => true) {
+    constructor(role: CreepRole, populationWeight: number, populationMax: number = -1) {
         this.role = role;
         this.populationWeight = populationWeight;
         this.populationCount = 0;
         this.populationMax = populationMax;
-        this.spawnCondition = spawnCondition;
     }
 }

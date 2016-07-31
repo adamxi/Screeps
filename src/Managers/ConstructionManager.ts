@@ -73,8 +73,8 @@ export class ConstructionManager {
     public completed(objId: string, creep: Creep): void {
         for (let i = this.CriticalStructureIds.length; --i >= 0;) {
             if (this.CriticalStructureIds[i] === objId) {
-                let obj = Game.getObjectById<Structure>(objId);
-                console.log("Removed critical | index: " + i + " | hits: " + obj.hits + " | type: " + obj.structureType + " | id: " + objId + " | creep: " + creep.name);
+                //let obj = Game.getObjectById<Structure>(objId);
+                //console.log("Removed critical | index: " + i + " | hits: " + obj.hits + " | type: " + obj.structureType + " | id: " + objId + " | creep: " + creep.name);
                 this.CriticalStructureIds.splice(i, 1);
                 return;
             }
@@ -82,7 +82,7 @@ export class ConstructionManager {
 
         for (let i = this.DamagedStructureIds.length; --i >= 0;) {
             if (this.DamagedStructureIds[i] === objId) {
-                console.log("Removed damaged: " + i + " " + objId + " | creep: " + creep.name);
+                //console.log("Removed damaged: " + i + " " + objId + " | creep: " + creep.name);
                 this.DamagedStructureIds.splice(i, 1);
                 return;
             }
@@ -90,7 +90,7 @@ export class ConstructionManager {
 
         for (let i = this.ConstructionSiteIds.length; --i >= 0;) {
             if (this.ConstructionSiteIds[i] === objId) {
-                console.log("Removed construction: " + i + " " + objId);
+                //console.log("Removed construction: " + i + " " + objId);
                 this.ConstructionSiteIds.splice(i, 1);
                 return;
             }

@@ -10,12 +10,10 @@ import {MathHelper} from "./../Util/MathHelper";
 
 export class RoomManager {
     public static roomManagers: { [id: string]: RoomManager; } = {};
+    private static spawnConditions: { (room: Room): boolean; }[];
 
     public roomName: string;
-    //private creepCount: number;
-    //private creepConstraintInvTotalWeight: number;
     public constructionManager: ConstructionManager;
-    private creepConstraints: CreepConstraint[];
 
     constructor(room: Room) {
         this.roomName = room.name;
@@ -23,6 +21,7 @@ export class RoomManager {
         this.SpawnTimer = 30;
 
         this.initCreepConstraints();
+        this.countPopulation();
         ResourceManager.locateResources(room);
     }
 
@@ -52,26 +51,27 @@ export class RoomManager {
     }
 
     public get CreepConstraints(): CreepConstraint[] {
-        //return this.Room.memory["creepConstrains"];
-        return this.creepConstraints;
+        return this.Room.memory["creepConstrains"];
     }
     public set CreepConstraints(value: CreepConstraint[]) {
-        //this.Room.memory["creepConstrains"] = value;
-        this.creepConstraints = value;
+        this.Room.memory["creepConstrains"] = value;
     }
 
     private initCreepConstraints() {
         this.CreepConstraints = [];
         this.CreepConstraints[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 5);
         this.CreepConstraints[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 4);
-        this.CreepConstraints[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 5);
-        this.CreepConstraints[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2, r => {
-            return this.Room.find(FIND_STRUCTURES, {
+        this.CreepConstraints[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 4);
+        this.CreepConstraints[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2);
+
+        RoomManager.spawnConditions = [];
+        RoomManager.spawnConditions[CreepRole.Carrier] = r => {
+            return r.find(FIND_STRUCTURES, {
                 filter: (s: Storage | Container) => {
                     return (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE)
                 }
             }).length > 0;
-        });
+        };
 
         var sum = 0;
         for (let c in this.CreepConstraints) {
@@ -120,8 +120,12 @@ export class RoomManager {
 
         for (let i = 0; i < len; ++i) {
             let constraint = this.CreepConstraints[i];
-            if (constraint.populationMax != -1 && constraint.populationCount >= constraint.populationMax ||
-                !constraint.spawnCondition(this.Room)) {
+            if (constraint.populationMax != -1 && constraint.populationCount >= constraint.populationMax) {
+                continue;
+            }
+
+            let sc = RoomManager.spawnConditions[constraint.role];
+            if (sc && !sc(this.Room)) {
                 continue;
             }
 
@@ -151,7 +155,7 @@ export class RoomManager {
 
     public checkSpawn(): void {
         let spawn = this.getNextSpawn();
-        
+
         if (spawn) {
             let role = this.getNextRole();
             let creepObj = Spawner.spawnCreep(role, spawn);

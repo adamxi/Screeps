@@ -8,6 +8,16 @@ export module CreepEx {
     var KEY_TARGET = "targetInfo";
     var KEY_LOG = "showLog";
 
+    Object.defineProperty(Creep.prototype, "foo", {
+        get: function () {
+            return "a";
+        }
+        //,
+        //set: function (val) {
+        //    this.loc = val;
+        //}
+    });
+
     Creep.prototype.setState = function (state: CreepState, clearTarget = true): void {
         (this as Creep).log("Setting State: " + CreepState[state].toString() + " | clearTarget: " + clearTarget);
         if (clearTarget) {
@@ -93,6 +103,10 @@ export module CreepEx {
         }
 
         console.log(this.name + " | State: " + CreepState[this.getState()] + " | Target: " + target);
+    }
+
+    Creep.prototype.inspect = function (): void {
+        console.log(JSON.stringify(this, null, "\t"));
     }
 
     Creep.prototype.debug = function (): void {

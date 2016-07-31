@@ -39,7 +39,6 @@ export class GameManager {
 
         GameObject.update();
 
-        debugger;
         for (let i in RoomManager.roomManagers) {
             if (RoomManager.roomManagers.hasOwnProperty(i)) {
                 RoomManager.roomManagers[i].update();
