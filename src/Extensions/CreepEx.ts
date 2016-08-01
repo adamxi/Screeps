@@ -8,15 +8,15 @@ export module CreepEx {
     var KEY_TARGET = "targetInfo";
     var KEY_LOG = "showLog";
 
-    Object.defineProperty(Creep.prototype, "foo", {
-        get: function () {
-            return "a";
-        }
-        //,
-        //set: function (val) {
-        //    this.loc = val;
-        //}
-    });
+    //Object.defineProperty(Creep.prototype, "foo", {
+    //    get: function () {
+    //        return "a";
+    //    }
+    //    //,
+    //    //set: function (val) {
+    //    //    this.loc = val;
+    //    //}
+    //});
 
     Creep.prototype.setState = function (state: CreepState, clearTarget = true): void {
         (this as Creep).log("Setting State: " + CreepState[state].toString() + " | clearTarget: " + clearTarget);
@@ -105,11 +105,11 @@ export module CreepEx {
         console.log(this.name + " | State: " + CreepState[this.getState()] + " | Target: " + target);
     }
 
-    Creep.prototype.inspect = function (): void {
+    Creep.prototype.showData = function (): void {
         console.log(JSON.stringify(this, null, "\t"));
     }
 
-    Creep.prototype.debug = function (): void {
+    Creep.prototype.showLog = function (): void {
         if (!this.memory[KEY_LOG]) {
             this.memory[KEY_LOG] = true;
         } else {
@@ -117,8 +117,11 @@ export module CreepEx {
         }
     }
 
-    Creep.prototype.log = function (msg: string): void {
+    Creep.prototype.log = function (msg: string, ...callStack: string[]): void {
         if (this.memory[KEY_LOG]) {
+            if (callStack.length > 0) {
+                msg += "\n\t" + callStack.join(" => ");
+            }
             console.log((this as Creep).name + " | " + msg);
         }
     }

@@ -34,7 +34,11 @@ interface Creep {
 
     // Debug methods
     showTarget(): void;
-    inspect(): void;
-    debug(): void;
+    showData(): void;
+    showLog(): void;
     log(msg: string): void;
+}
+
+interface Game {
+    profiler: any;
 }

@@ -19,7 +19,7 @@ export class CreepCarrier extends CreepObject {
                     this.doWithdrawEnergy(CreepState.Working);
                 } else {
                     this.setState(CreepState.Working);
-                    this.update();
+                    //this.update();
                 }
                 break;
 

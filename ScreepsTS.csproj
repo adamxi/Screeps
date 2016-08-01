@@ -24,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="gulpfile.js" />
+    <TypeScriptCompile Include="src\Components\screeps-profiler.ts" />
     <Content Include="tsconfig.json" />
     <Content Include="package.json" />
     <Content Include="config.json" />
@@ -70,9 +71,7 @@
   <ItemGroup>
     <Content Include="typings\globals\lodash\typings.json" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\Components\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Content Include="config.example.json" />
   </ItemGroup>

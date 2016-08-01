@@ -1,12 +1,16 @@
 import "./../Extensions/CreepEx";
 import "./../Extensions/RoomObjectEx";
+import Profiler from "./../Components/screeps-profiler";
 import {GameManager} from "./../Managers/GameManager";
 
+Profiler.enable();
 GameManager.init();
 
 declare const module: any;
 module.exports.loop = function () {
-    //console.log("tick");
-    GameManager.update();
+    Profiler.wrap(function () {
+        //console.log("tick");
+        GameManager.update();
+    });
 }
  

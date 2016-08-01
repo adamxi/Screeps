@@ -41,7 +41,7 @@ export abstract class CreepObject extends GameObject {
     protected getDroppedResource(): Resource {
         let target = this.Creep.getTarget<Resource>();
         if (!target) {
-            target = this.Creep.pos.findClosestByRange<Resource>(FIND_DROPPED_ENERGY, {
+            target = this.Creep.pos.findClosestByPath<Resource>(FIND_DROPPED_ENERGY, {
                 filter: (r: Resource) => {
                     return (
                         r.resourceType === RESOURCE_ENERGY &&
@@ -59,7 +59,7 @@ export abstract class CreepObject extends GameObject {
         if (resource instanceof Resource) {
             let creep = this.Creep;
             let resp = creep.pickup(resource);
-
+            //console.log(creep.name + " | pickup: " + ErrorHelper.getErrorString(resp));
             switch (resp) {
                 case OK:
                     //creep.clearTarget();
@@ -70,13 +70,28 @@ export abstract class CreepObject extends GameObject {
                     break;
 
                 case ERR_NOT_IN_RANGE:
-                    creep.moveTo(resource);
+                    let moveResp = creep.moveTo(resource);
+                    switch (moveResp) {
+                        case OK:
+                            break;
+
+                        case ERR_NO_PATH:
+                            creep.clearTarget();
+                            break;
+
+                        default:
+                            console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(moveResp));
+                            break;
+                    }
+
                     break;
 
-                case ERR_NOT_OWNER:
-                case ERR_BUSY:
                 case ERR_INVALID_TARGET:
                     creep.clearTarget();
+                    break;
+
+                default:
+                    console.log(creep.name + " | pickup: " + ErrorHelper.getErrorString(resp));
                     break;
             }
             return true; // Return 'true' to indicate that the calling logic should stop.
@@ -100,12 +115,12 @@ export abstract class CreepObject extends GameObject {
                     creep.moveTo(storage);
                     break;
 
-                case ERR_NOT_OWNER:
-                case ERR_BUSY:
                 case ERR_NOT_ENOUGH_RESOURCES:
-                case ERR_INVALID_TARGET:
-                case ERR_INVALID_ARGS:
                     creep.clearTarget();
+                    break;
+
+                default:
+                    console.log(creep.name + " | withdraw: " + ErrorHelper.getErrorString(resp));
                     break;
             }
             return true;
@@ -150,15 +165,20 @@ export abstract class CreepObject extends GameObject {
 
                     case ERR_NOT_IN_RANGE:
                         let moveResp = creep.moveTo(target);
-                        //console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(resp));
-
                         switch (moveResp) {
+                            case OK:
+                                break;
+
                             case ERR_NO_PATH:
+                                console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(moveResp));
                                 creep.clearTarget();
                                 break;
 
+                            case ERR_TIRED:
+                                break;
+
                             default:
-                                console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(resp));
+                                console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(moveResp));
                                 break;
                         }
                         break;

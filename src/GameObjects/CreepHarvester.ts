@@ -9,7 +9,7 @@ export class CreepHarvester extends CreepObject {
 
     public update(): void {
         var creep = this.Creep;
-
+        //console.log(JSON.stringify(arguments.callee, null, "\t"));
         switch (creep.getState()) {
             case CreepState.Harvesting:
                 if (!this.doHarvest()) {
