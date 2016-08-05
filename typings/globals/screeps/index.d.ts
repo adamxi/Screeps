@@ -167,6 +167,7 @@ declare var STRUCTURE_LAB: string;
 declare var STRUCTURE_TERMINAL: string;
 declare var STRUCTURE_CONTAINER: string;
 declare var STRUCTURE_NUKER: string;
+declare var STRUCTURE_PORTAL: string;
 declare var RESOURCE_ENERGY: string;
 declare var RESOURCE_POWER: string;
 declare var RESOURCE_UTRIUM: string;
@@ -215,135 +216,8 @@ declare var CONTROLLER_LEVELS: {
     [level: number]: number;
 };
 declare var CONTROLLER_STRUCTURES: {
-    spawn: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    extension: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    link: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    constructedWall: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    rampart: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    storage: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    tower: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    observer: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    powerSpawn: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    extractor: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    terminal: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    lab: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
-    };
-    container: {
-        1: number;
-        2: number;
-        3: number;
-        4: number;
-        5: number;
-        6: number;
-        7: number;
-        8: number;
+    [structure: string]: {
+        [level: number]: number;
     };
 };
 declare var CONTROLLER_DOWNGRADE: {
@@ -616,7 +490,6 @@ declare type Rampart = StructureRampart;
 declare type Terminal = StructureTerminal;
 declare type Container = StructureContainer;
 declare type Tower = StructureTower;
-declare type StructureSpawn = Spawn;
 interface Storage extends StructureStorage {
 }
 /**
@@ -677,6 +550,10 @@ declare class Creep extends RoomObject {
      * Whether this creep is still being spawned.
      */
     spawning: boolean;
+    /**
+     * The text message that the creep was saying at the last tick.
+     */
+    saying: string;
     /**
      * The remaining amount of game ticks after which the creep will die.
      */
@@ -798,8 +675,9 @@ declare class Creep extends RoomObject {
     /**
      * Display a visual speech balloon above the creep with the specified message. The message will disappear after a few seconds. Useful for debugging purposes. Only the creep's owner can see the speech message.
      * @param message The message to be displayed. Maximum length is 10 characters.
+     * @param set to 'true' to allow other players to see this message. Default is 'false'.
      */
-    say(message: string): number;
+    say(message: string, toPublic?: boolean): number;
     /**
      * Kill the creep immediately.
      */
@@ -876,8 +754,6 @@ declare class Flag extends RoomObject {
  * The main global game object containing all the gameplay information.
  */
 interface Game {
-    flagObject(id: string): void;
-
     /**
      * An object containing information about your CPU usage with the following properties:
      */
@@ -945,7 +821,7 @@ interface Game {
      * @param message Custom text which will be sent in the message. Maximum length is 1000 characters.
      * @param groupInterval If set to 0 (default), the notification will be scheduled immediately. Otherwise, it will be grouped with other notifications and mailed out later using the specified time in minutes.
      */
-    notify(message: string, groupInterval: number): void;
+    notify(message: string, groupInterval?: number): void;
 }
 interface GlobalControlLevel {
     level: number;
@@ -1084,7 +960,7 @@ interface MoveToOpts {
      * If reusePath is enabled and this option is set to true, the path will be stored in memory in the short serialized form using
      * Room.serializePath. The default value is true.
      */
-    serializeMemory: boolean;
+    serializeMemory?: boolean;
     /**
      * If this option is set to true, moveTo method will return ERR_NOT_FOUND if there is no memorized path to reuse. This can
      * significantly save CPU time in some cases. The default value is false.
@@ -1659,7 +1535,7 @@ declare class Room {
      * @param color The color of a new flag. Should be one of the COLOR_* constants. The default value is COLOR_WHITE.
      * @param secondaryColor The secondary color of a new flag. Should be one of the COLOR_* constants. The default value is equal to color.
      */
-    createFlag(x: number, y: number, name: string, color: number, secondaryColor?: number): number;
+    createFlag(x: number, y: number, name?: string, color?: number, secondaryColor?: number): number;
     /**
      * Create new Flag at the specified location.
      * @param pos Can be a RoomPosition object or any object containing RoomPosition.
@@ -1669,7 +1545,7 @@ declare class Room {
      */
     createFlag(pos: RoomPosition | {
         pos: RoomPosition;
-    }, name: string, color: number, secondaryColor?: number): number;
+    }, name?: string, color?: number, secondaryColor?: number): number;
     /**
      * Find all objects of the specified type in the room.
      * @param type One of the following constants:FIND_CREEPS, FIND_MY_CREEPS, FIND_HOSTILE_CREEPS, FIND_MY_SPAWNS, FIND_HOSTILE_SPAWNS, FIND_SOURCES, FIND_SOURCES_ACTIVE, FIND_DROPPED_RESOURCES, FIND_DROPPED_ENERGY, FIND_STRUCTURES, FIND_MY_STRUCTURES, FIND_HOSTILE_STRUCTURES, FIND_FLAGS, FIND_CONSTRUCTION_SITES, FIND_EXIT_TOP, FIND_EXIT_RIGHT, FIND_EXIT_BOTTOM, FIND_EXIT_LEFT, FIND_EXIT
@@ -1757,7 +1633,7 @@ declare class Room {
      * @param path A path array retrieved from Room.findPath.
      * @returns A serialized string form of the given path.
      */
-    serializePath(path: PathStep[]): string;
+    static serializePath(path: PathStep[]): string;
     /**
      * Deserialize a short string path representation into an array form.
      * @param path A serialized path string.
@@ -1768,7 +1644,7 @@ declare class Room {
 /**
  * An energy source object. Can be harvested by creeps with a WORK body part.
  */
-interface Source {
+declare class Source extends RoomObject {
     /**
      * The prototype is stored in the Source.prototype global object. You can use it to extend game objects behaviour globally:
      */
@@ -1785,14 +1661,6 @@ interface Source {
      * A unique object identificator. You can use Game.getObjectById method to retrieve an object instance by its id.
      */
     id: string;
-    /**
-     * An object representing the position of this structure in the room.
-     */
-    pos: RoomPosition;
-    /**
-     * The link to the Room object of this structure.
-     */
-    room: Room;
     /**
      * The remaining time after which the source will be refilled.
      */
@@ -1911,6 +1779,8 @@ declare class Spawn extends OwnedStructure {
      */
     transferEnergy(target: Creep, amount?: number): number;
 }
+declare class StructureSpawn extends Spawn {
+}
 /**
  * Parent object for structure classes
  */
@@ -2014,7 +1884,7 @@ declare class StructureExtension extends OwnedStructure {
 /**
  * Remotely transfers energy to another Link in the same room.
  */
-interface StructureLink extends OwnedStructure {
+declare class StructureLink extends OwnedStructure {
     /**
      * The amount of game ticks the link has to wait until the next transfer is possible.
      */
@@ -2337,4 +2207,19 @@ declare class StructureNuker extends OwnedStructure {
      * @param pos The target room position.
      */
     launchNuke(pos: RoomPosition): number;
+}
+/**
+ * A non-player structure.
+ * Instantly teleports your creeps to a distant room acting as a room exit tile.
+ * Portals appear randomly in the central room of each sector.
+ */
+declare class StructurePortal extends Structure {
+    /**
+     * The position object in the destination room.
+     */
+    destination: RoomPosition;
+    /**
+     * The amount of game ticks when the portal disappears, or undefined when the portal is stable.
+     */
+    ticksToDecay: number;
 }

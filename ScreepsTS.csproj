@@ -56,7 +56,7 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="src\Util\Spawner.ts" />
-    <TypeScriptCompile Include="typings\extensions\Classes.d.ts" />
+    <TypeScriptCompile Include="typings\extensions\Patches.d.ts" />
     <TypeScriptCompile Include="typings\extensions\Creep.d.ts" />
     <TypeScriptCompile Include="typings\extensions\Game.d.ts" />
     <TypeScriptCompile Include="typings\extensions\index.d.ts" />

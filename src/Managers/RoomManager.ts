@@ -118,7 +118,7 @@ export class RoomManager {
         let maxScore = Number.NEGATIVE_INFINITY;
         let len = this.CreepConstraints.length;
 
-        for (let i = 0; i < len; ++i) {
+        for (let i = 0; i < len; i++) {
             let constraint = this.CreepConstraints[i];
             if (constraint.populationMax != -1 && constraint.populationCount >= constraint.populationMax) {
                 continue;

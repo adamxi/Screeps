@@ -46,7 +46,7 @@ export module CreepEx {
             let o = Game.getObjectById<T>(targetInfo.id);
 
             if (types.length > 0) {
-                for (let i = 0; i < types.length; ++i) {
+                for (let i = 0; i < types.length; i++) {
                     if (o instanceof types[i]) {
                         return o;
                     }

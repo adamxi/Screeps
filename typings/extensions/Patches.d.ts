@@ -2,6 +2,6 @@
     // Dummy definition for missing class description.
 }
 
-declare class Source {
-    // Dummy definition for missing class description.
+interface LookAtResultWithPos {
+    constructionSite?: ConstructionSite;
 }

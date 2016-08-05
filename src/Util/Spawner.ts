@@ -50,7 +50,7 @@ export class Spawner {
             }
 
             let nextId = Spawner.getNextId(role);
-            let name = Config.RoleToString[role] + "_" + nextId;
+            let name = Config.ROLE_TO_STRING[role] + "_" + nextId;
             let memory = { role: role, state: CreepState.Idle, roleId: nextId };
             let body = Spawner.getBestBody(currentEnergy, partConfigs);
 

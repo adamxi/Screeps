@@ -14,7 +14,7 @@ export class ConstructionManager {
     constructor(room: Room) {
         this.roomName = room.name;
 
-        this.timer = new Timer(this.roomName + "_constructionManager", 60, t => this.timerElapsed(t));
+        this.timer = new Timer(this.roomName + "_constructionManager", Config.TIMER_CONSTRUCTORMANAGER_UPDATE, t => this.timerElapsed(t));
         this.update();
     }
 
@@ -111,7 +111,7 @@ export class ConstructionManager {
         let count = ids.length;
         if (count > 0) {
             for (let type in Config.structurePriority) {
-                for (let i = 0; i < count; ++i) {
+                for (let i = 0; i < count; i++) {
                     let s = Game.getObjectById<T>(ids[i]);
                     if (s && s.structureType === type) {
                         return s;
@@ -155,7 +155,9 @@ export class ConstructionManager {
         this.sources = this.Room.find<Source>(FIND_SOURCES);
 
         if (this.ConstructionSiteCount < MAX_CONSTRUCTION_SITES) {
-            //this.constructRoads();
+            this.constructRoads();
+            this.constructExtensions();
+            this.constructContainers();
             this.constructTowers();
         }
     }
@@ -184,7 +186,6 @@ export class ConstructionManager {
             return;
         }
 
-
         let sources = this.sources;
         for (let i = spawns.length; --i >= 0;) {
             let spawnPos = spawns[i].pos;
@@ -192,15 +193,16 @@ export class ConstructionManager {
                 return MathHelper.dist(spawnPos, s.pos);
             });
 
-            for (let j = 0; j < sortedSources.length; ++j) {
+            for (let j = 0; j < sortedSources.length; j++) {
                 let sourcePos = sortedSources[j].pos;
 
                 let pathSteps = room.findPath(spawnPos, sourcePos, {
                     ignoreCreeps: true,
-                    ignoreRoads: true
+                    ignoreRoads: true,
                 });
 
                 this.constructPath(pathSteps, STRUCTURE_ROAD);
+                break;
             }
         }
     }
@@ -212,7 +214,8 @@ export class ConstructionManager {
         pStart.y -= pStart.dy;
         this.constructThickness(pStart, structureType);
 
-        for (let i = 0; i < pathSteps.length; i++) {
+        let len = pathSteps.length;
+        for (let i = 0; i < len; i++) {
             let p = pathSteps[i];
             this.constructAt(p.x, p.y, structureType);
             this.constructThickness(p, structureType);
@@ -263,7 +266,6 @@ export class ConstructionManager {
 
     private constructTowers(): void {
         let limit = this.getStructureLimit(STRUCTURE_TOWER);
-
         if (this.spawns.length === 0) {
             return;
         }
@@ -274,7 +276,7 @@ export class ConstructionManager {
         let result = spawn.room.lookAtArea(p.y - r, p.x - r, p.y + r, p.x + r) as LookAtResultMatrix;
         let prevPos: RoomPosition = null;
 
-        for (let i = 0; i < limit; ++i) {
+        for (let i = 0; i < limit; i++) {
             let resp = this.getAvailableTile(result, prevPos);
             if (resp.available) {
                 prevPos = resp.pos;
@@ -283,6 +285,42 @@ export class ConstructionManager {
         }
     }
 
+    private constructContainers(): void {
+        if (this.sources.length === 0) {
+            return;
+        }
+
+        let limit = this.getStructureLimit(STRUCTURE_CONTAINER);
+        let currentCount = this.Room.find<Structure>(FIND_MY_STRUCTURES, {
+            filter: (s: Structure) => s.structureType === STRUCTURE_CONTAINER
+        }).length;
+
+        if (currentCount >= limit) {
+            return;
+        }
+
+        let range = 1;
+        let spawnPos = this.spawns[0].pos;
+        let sortedSources = _.sortBy(this.sources, (s) => {
+            return MathHelper.dist(spawnPos, s.pos);
+        });
+        let sourceLen = sortedSources.length;
+
+        for (let i = 0; i < sourceLen; i++) {
+            if (limit <= 0) {
+                return;
+            }
+            
+            let p = sortedSources[i].pos;
+            let area = this.Room.lookAtArea(p.y - range, p.x - range, p.y + range, p.x + range, true) as LookAtResultWithPos[];
+            limit -= this.getClosestAvailableTile(area, p, Math.min(limit, Config.CONTAINERS_PER_SOURCE), STRUCTURE_CONTAINER, r => {
+                return this.constructAt(r.x, r.y, STRUCTURE_CONTAINER);
+            });
+        }
+    }
+
+    private constructExtensions(): void {
+    }
 
     private constructAt(x: number, y: number, structureType: string): boolean {
         let resp = this.Room.createConstructionSite(x, y, structureType);
@@ -320,7 +358,7 @@ export class ConstructionManager {
         }
     }
 
-    private getAvailableTile(area: LookAtResultMatrix, prevPos: RoomPosition): { available: boolean, pos: RoomPosition } {
+    private getAvailableTile(area: LookAtResultMatrix, prevPos: RoomPosition, includeRoads = true): { available: boolean, pos: RoomPosition } {
         for (let y in area) {
             if (prevPos && prevPos.y.toString() === y) {
                 continue;
@@ -336,7 +374,17 @@ export class ConstructionManager {
                 for (let i in tiles) {
                     let tile = tiles[i];
 
-                    if (tile.structure || tile.source || tile.constructionSite || tile.terrain === "wall") {
+                    if (tile.structure) {
+                        if (tile.structure instanceof StructureRoad && includeRoads) {
+                            tileFree = false;
+                            break;
+                        } else {
+                            tileFree = false;
+                            break;
+                        }
+                    }
+
+                    if (tile.source || tile.constructionSite || tile.terrain === "wall") {
                         tileFree = false;
                         break;
                     }
@@ -356,6 +404,54 @@ export class ConstructionManager {
             pos: null
         }
     }
+
+    private getClosestAvailableTile(area: LookAtResultWithPos[], refPos: RoomPosition, findCount: number, structureType: string, onFind: { (result: LookAtResultWithPos): boolean }): number {
+        let sortedTiles = _.sortBy(area, (t) => {
+            return MathHelper.squareDist2(refPos.x, refPos.y, t.x, t.y);
+        });
+
+        let structuresFound = 0;
+        let tileLen = sortedTiles.length;
+        for (let i = 0; i < tileLen; i++) {
+            let tile = sortedTiles[i];
+            let tx = tile.x;
+            let ty = tile.y;
+
+            if (structuresFound >= findCount) {
+                break;
+            }
+
+            if (tile.structure instanceof StructureRoad) {
+                let tileFree = true;
+
+                for (let j = i + 1; j < tileLen; j++) {
+                    let tile2 = sortedTiles[j];
+
+                    if (tx === tile2.x && ty == tile2.y) {
+                        if (tile2.constructionSite && tile2.constructionSite.structureType === structureType ||
+                            tile2.structure && tile2.structure.structureType === structureType) {
+                            ++structuresFound;
+                            tileFree = false;
+                            break;
+                        }
+                        if (tile2.structure || tile2.source || tile2.terrain === "wall") {
+                            tileFree = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (tileFree) {
+                    if (onFind(tile)) {
+                        ++structuresFound;
+                    }
+                }
+            }
+        }
+
+        return structuresFound;
+    }
+
 
     //private tileAvailable(x: number, y: number): boolean {
     //    let results = this.Room.lookAt(x, y);

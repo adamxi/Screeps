@@ -1,7 +1,9 @@
 ﻿export namespace Config {
-    export const RoleToString = ["H", "B", "U", "C"];
-
+    export const ROLE_TO_STRING = ["H", "B", "U", "C"];
     export let structurePriority: { [id: string]: any; } = {};
+
+    export const CONTAINERS_PER_SOURCE = 2;
+    export const TIMER_CONSTRUCTORMANAGER_UPDATE = 30;
 
     export const initialize = function () {
         structurePriority = {};

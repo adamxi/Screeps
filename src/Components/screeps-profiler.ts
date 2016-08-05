@@ -160,7 +160,7 @@ export class Profiler {
             { name: 'Spawn', val: Spawn },
             { name: 'Creep', val: Creep },
             { name: 'RoomPosition', val: RoomPosition },
-            //{ name: 'Source', val: Source },
+            { name: 'Source', val: Source },
             { name: 'Flag', val: Flag },
         ],
 
