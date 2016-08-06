@@ -20,7 +20,7 @@ export class CreepHarvester extends CreepObject {
 
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
-                    let target = creep.getTarget<Structure>();
+                    let target = creep.getTarget<Structure>(StructureStorage, StructureContainer, StructureExtension, Spawn, StructureTower);
                     if (!target) {
                         if (RoomManager.roomManagers[creep.room.name].hasRole(CreepRole.Carrier)) {
                             target = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
@@ -36,12 +36,12 @@ export class CreepHarvester extends CreepObject {
 
                         if (!target) {
                             target = creep.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
-                                filter: (structure: Extension | Spawn | Tower) => {
+                                filter: (s: Extension | Spawn | Tower) => {
                                     return (
-                                        structure.structureType === STRUCTURE_EXTENSION ||
-                                        structure.structureType === STRUCTURE_SPAWN ||
-                                        structure.structureType === STRUCTURE_TOWER) &&
-                                        structure.energy < structure.energyCapacity;
+                                        s.structureType === STRUCTURE_EXTENSION ||
+                                        s.structureType === STRUCTURE_SPAWN ||
+                                        s.structureType === STRUCTURE_TOWER) &&
+                                        s.energy < s.energyCapacity;
                                 }
                             });
                             creep.setTarget(target);

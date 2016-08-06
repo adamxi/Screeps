@@ -1,4 +1,4 @@
-export default class Profiler {
+export class Profiler {
     private static usedOnStart = 0;
     private static enabled = false;
     private static depth = 0;

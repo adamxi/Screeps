@@ -32,6 +32,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="snippets.txt" />
+    <TypeScriptCompile Include="src\Components\Timer.ts" />
     <TypeScriptCompile Include="src\Config\Config.ts" />
     <TypeScriptCompile Include="src\Extensions\CreepEx.ts" />
     <TypeScriptCompile Include="src\Extensions\RoomObjectEx.ts" />
@@ -55,7 +56,9 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="src\Util\Spawner.ts" />
+    <TypeScriptCompile Include="typings\extensions\Classes.d.ts" />
     <TypeScriptCompile Include="typings\extensions\Creep.d.ts" />
+    <TypeScriptCompile Include="typings\extensions\Game.d.ts" />
     <TypeScriptCompile Include="typings\extensions\index.d.ts" />
     <TypeScriptCompile Include="typings\extensions\RoomObject.d.ts" />
     <TypeScriptCompile Include="typings\globals\lodash\index.d.ts" />

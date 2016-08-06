@@ -30,61 +30,64 @@ export class ResourceManager {
     }
 
     public static getBestSource2(creep: Creep): Source {
-        var room = creep.room;
-        var pos = creep.pos;
-        var sources: any[] = creep.room.memory["sources"];
-        var items = _.sortBy(sources, (a) => {
-            return MathHelper.squareDist2(a.x, a.y, pos.x, pos.y);
-        });
+        return creep.pos.findClosestByPath<Source>(FIND_SOURCES_ACTIVE);
 
-        for (let index in items) {
-            let source = items[index] as any;
-            let sourceId = source.sourceId;
-            let availableSlots = source.totalSlots;
-            let sourceX = source.x;
-            let sourceY = source.y;
-            let area = room.lookAtArea(sourceY - 1, sourceX - 1, sourceY + 1, sourceX + 1) as LookAtResultMatrix;
+        //var room = creep.room;
+        //var pos = creep.pos;
+        //var sources: any[] = creep.room.memory["sources"];
+        //var items = _.sortBy(sources, (s) => {
+        //    return MathHelper.squareDist2(pos.x, pos.y, s.x, s.y);
+        //});
 
-            for (let y in area) {
-                for (let x in area[y]) {
-                    if (sourceX == x && sourceY == y) {
-                        continue;
-                    }
+        //for (let index in items) {
+        //    let source = items[index] as any;
+        //    let sourceId = source.sourceId;
+        //    let availableSlots = source.totalSlots;
+        //    let sourceX = source.x;
+        //    let sourceY = source.y;
 
-                    let tiles = area[y][x] as LookAtResult[];
+        //    let area = room.lookAtArea(sourceY - 1, sourceX - 1, sourceY + 1, sourceX + 1) as LookAtResultMatrix;
 
-                    for (let i in tiles) {
-                        // Check if tile is plain
-                        if (tiles[i].terrain === "plain") {
+        //    for (let y in area) {
+        //        for (let x in area[y]) {
+        //            if (sourceX == x && sourceY == y) {
+        //                continue;
+        //            }
 
-                            // If plain, check if obstructed
-                            for (let i2 in tiles) {
-                                let t = tiles[i2];
+        //            let tiles = area[y][x] as LookAtResult[];
 
-                                if (t.creep) {
-                                    if (t.creep.name === creep.name) {
-                                        return Game.getObjectById<Source>(sourceId);
-                                    }
-                                    --availableSlots;
-                                    break;
-                                }
-                                if (t.terrain === "wall" || t.source) {
-                                    --availableSlots;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        //            for (let i in tiles) {
+        //                // Check if tile is plain
+        //                if (tiles[i].terrain === "plain") {
 
-            if (availableSlots > 0) {
-                return Game.getObjectById<Source>(sourceId);
-            }
-        }
+        //                    // If plain, check if obstructed
+        //                    for (let i2 in tiles) {
+        //                        let t = tiles[i2];
+
+        //                        if (t.creep) {
+        //                            if (t.creep.name === creep.name) {
+        //                                return Game.getObjectById<Source>(sourceId);
+        //                            }
+        //                            --availableSlots;
+        //                            break;
+        //                        }
+        //                        if (t.terrain === "wall" || t.source) {
+        //                            --availableSlots;
+        //                            break;
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    if (availableSlots > 0) {
+        //        return Game.getObjectById<Source>(sourceId);
+        //    }
+        //}
         
-        var maxSourceId = _.max(sources, s => s.totalSlots);
-        return Game.getObjectById<Source>(maxSourceId);
+        //var maxSourceId = _.max(sources, s => s.totalSlots);
+        //return Game.getObjectById<Source>(maxSourceId);
     }
 
     //public static getBestSource(creep: Creep): Source {

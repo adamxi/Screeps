@@ -1,25 +1,25 @@
 ﻿import {Config} from "./../Config/Config";
 import {GameManager} from "./../Managers/GameManager";
+import {ErrorHelper} from "./../Util/ErrorHelper"
+import {MathHelper} from "./../Util/MathHelper"
+import {Timer} from "./../Components/Timer";
 
 export class ConstructionManager {
-    private static ticksToRefresh = 60;
+    private timer: Timer;
     private roomName: string;
+
+    private spawns: Spawn[];
+    private sources: Source[];
 
     constructor(room: Room) {
         this.roomName = room.name;
-        this.Timer = 0;
-        this.update(room, true);
+
+        this.timer = new Timer(this.roomName + "_constructionManager", 60, t => this.timerElapsed(t));
+        this.update();
     }
 
     public get Room(): Room {
         return Game.rooms[this.roomName];
-    }
-
-    public get Timer(): number {
-        return this.Room.memory["timer_construction"];
-    }
-    public set Timer(value: number) {
-        this.Room.memory["timer_construction"] = value;
     }
 
     public get CriticalStructureIds(): string[] {
@@ -43,11 +43,21 @@ export class ConstructionManager {
         this.Room.memory["constructionSiteIds"] = value;
     }
 
-    public update(room: Room, forceRefresh = false): void {
-        if (forceRefresh || ++this.Timer >= ConstructionManager.ticksToRefresh) {
-            this.Timer = 0;
-            this.mapStructures(room);
-        }
+    public get ConstructionSiteCount(): number {
+        return this.Room.memory["constructionSiteCount"];
+    }
+    public set ConstructionSiteCount(value: number) {
+        this.Room.memory["constructionSiteCount"] = value;
+    }
+
+    public timerElapsed(timer: Timer): void {
+        this.mapStructures();
+        this.planConstructions();
+        console.log("ConstructionManager update");
+    }
+
+    public update(): void {
+        this.timer.update();
     }
 
     public getNext(): ConstructionResponse {
@@ -113,11 +123,11 @@ export class ConstructionManager {
         return null;
     }
 
-    private mapStructures(room: Room): void {
+    private mapStructures(): void {
         this.CriticalStructureIds = [];
         this.DamagedStructureIds = [];
 
-        let structures = room.find<Structure>(FIND_STRUCTURES).sort((a, b) => a.hits > b.hits ? -1 : 1);
+        let structures = this.Room.find<Structure>(FIND_STRUCTURES).sort((a, b) => a.hits > b.hits ? -1 : 1);
         for (let i = structures.length; --i >= 0;) {
             let s = structures[i];
             let sp = Config.structurePriority[s.structureType];
@@ -131,7 +141,236 @@ export class ConstructionManager {
             }
         }
 
-        this.ConstructionSiteIds = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES).map(s => s.id);
+        this.mapConstructionSites();
+    }
+
+    private mapConstructionSites() {
+        let ids = this.Room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES).map(s => s.id);
+        this.ConstructionSiteIds = ids;
+        this.ConstructionSiteCount = ids.length;
+    }
+
+    private planConstructions(): void {
+        this.spawns = this.Room.find<Spawn>(FIND_MY_SPAWNS);
+        this.sources = this.Room.find<Source>(FIND_SOURCES);
+
+        if (this.ConstructionSiteCount < MAX_CONSTRUCTION_SITES) {
+            //this.constructRoads();
+            this.constructTowers();
+        }
+    }
+
+    private constructRoads(): void {
+        let room = this.Room;
+
+        let controller = room.controller;
+        if (!controller) {
+            return;
+        }
+
+        let spawns = this.spawns;
+        for (let i = spawns.length; --i >= 0;) {
+            let spawnPos = spawns[i].pos;
+
+            let pathSteps = room.findPath(spawnPos, controller.pos, {
+                ignoreCreeps: true,
+                ignoreRoads: true,
+            });
+
+            this.constructPath(pathSteps, STRUCTURE_ROAD);
+        }
+
+        if (this.ConstructionSiteCount >= MAX_CONSTRUCTION_SITES) {
+            return;
+        }
+
+
+        let sources = this.sources;
+        for (let i = spawns.length; --i >= 0;) {
+            let spawnPos = spawns[i].pos;
+            let sortedSources = _.sortBy(sources, (s) => {
+                return MathHelper.dist(spawnPos, s.pos);
+            });
+
+            for (let j = 0; j < sortedSources.length; ++j) {
+                let sourcePos = sortedSources[j].pos;
+
+                let pathSteps = room.findPath(spawnPos, sourcePos, {
+                    ignoreCreeps: true,
+                    ignoreRoads: true
+                });
+
+                this.constructPath(pathSteps, STRUCTURE_ROAD);
+            }
+        }
+    }
+
+    private constructPath(pathSteps: PathStep[], structureType: string): void {
+        let room = this.Room;
+        let pStart = _.cloneDeep(pathSteps[0]);
+        pStart.x -= pStart.dx;
+        pStart.y -= pStart.dy;
+        this.constructThickness(pStart, structureType);
+
+        for (let i = 0; i < pathSteps.length; i++) {
+            let p = pathSteps[i];
+            this.constructAt(p.x, p.y, structureType);
+            this.constructThickness(p, structureType);
+        }
+    }
+
+    private constructThickness(step: PathStep, structureType: string) {
+        switch (step.direction) {
+            case TOP_LEFT:
+            case TOP_RIGHT:
+            case BOTTOM_LEFT:
+            case BOTTOM_RIGHT:
+                let nextDir = MathHelper.getNextDir(step.direction);
+                let nextVec = MathHelper.getVectorDir(nextDir);
+                if (!this.constructAt(step.x + nextVec.x, step.y + nextVec.y, structureType)) {
+                    let prevDir = MathHelper.getPrevDir(step.direction);
+                    let prevVec = MathHelper.getVectorDir(prevDir);
+                    this.constructAt(step.x + prevVec.x, step.y + prevVec.y, structureType)
+
+                    let vec = MathHelper.getOppositeVector(nextVec);
+                    this.constructAt(step.x + vec.x, step.y + vec.y, structureType)
+                }
+
+                nextDir = MathHelper.getNextDir(step.direction + 2);
+                nextVec = MathHelper.getVectorDir(nextDir);
+                if (!this.constructAt(step.x + nextVec.x, step.y + nextVec.y, structureType)) {
+                    let prevDir = MathHelper.getPrevDir(step.direction);
+                    let prevVec = MathHelper.getVectorDir(prevDir);
+                    this.constructAt(step.x + prevVec.x, step.y + prevVec.y, structureType)
+                }
+                break;
+
+            case TOP:
+            case BOTTOM:
+            case LEFT:
+            case RIGHT:
+                let vec = MathHelper.getVectorRight(step.dx, step.dy);
+                if (!this.constructAt(step.x + vec.x, step.y + vec.y, structureType)) {
+                    vec = MathHelper.getOppositeVector(vec);
+                    this.constructAt(step.x + vec.x, step.y + vec.y, structureType)
+                }
+
+                this.constructAt(step.x + step.dx, step.y + step.dy, structureType)
+                break;
+        }
+    }
+
+
+    private constructTowers(): void {
+        let limit = this.getStructureLimit(STRUCTURE_TOWER);
+
+        if (this.spawns.length === 0) {
+            return;
+        }
+
+        let spawn = this.spawns[0];
+        let p = spawn.pos;
+        let r = 4;
+        let result = spawn.room.lookAtArea(p.y - r, p.x - r, p.y + r, p.x + r) as LookAtResultMatrix;
+        let prevPos: RoomPosition = null;
+
+        for (let i = 0; i < limit; ++i) {
+            let resp = this.getAvailableTile(result, prevPos);
+            if (resp.available) {
+                prevPos = resp.pos;
+                this.constructAt(prevPos.x, prevPos.y, STRUCTURE_TOWER);
+            }
+        }
+    }
+
+
+    private constructAt(x: number, y: number, structureType: string): boolean {
+        let resp = this.Room.createConstructionSite(x, y, structureType);
+
+        switch (resp) {
+            case OK:
+                ++this.ConstructionSiteCount;
+                return true;
+
+            case ERR_INVALID_ARGS:
+            case ERR_INVALID_TARGET:
+                let sites = this.Room.lookForAt<ConstructionSite>(LOOK_CONSTRUCTION_SITES, x, y);
+                for (let s in sites) {
+                    if (sites[s].structureType === structureType) {
+                        // Structure type already planned at current position.
+                        return true;
+                    }
+                }
+
+                let structures = this.Room.lookForAt<Structure>(LOOK_STRUCTURES, x, y);
+                for (let s in structures) {
+                    if (structures[s].structureType === structureType) {
+                        // Structure type already built at current position.
+                        return true;
+                    }
+                }
+
+                // Structure type not planned at current position.
+                return false;
+
+            case ERR_FULL:
+            case ERR_RCL_NOT_ENOUGH:
+                //console.log(this.Room.name + " | createConstructionSite: " + ErrorHelper.getErrorString(resp));
+                return false;
+        }
+    }
+
+    private getAvailableTile(area: LookAtResultMatrix, prevPos: RoomPosition): { available: boolean, pos: RoomPosition } {
+        for (let y in area) {
+            if (prevPos && prevPos.y.toString() === y) {
+                continue;
+            }
+
+            for (let x in area[y]) {
+                if (prevPos && prevPos.x.toString() === x) {
+                    continue;
+                }
+
+                let tiles = area[y][x] as LookAtResult[];
+                let tileFree = true;
+                for (let i in tiles) {
+                    let tile = tiles[i];
+
+                    if (tile.structure || tile.source || tile.constructionSite || tile.terrain === "wall") {
+                        tileFree = false;
+                        break;
+                    }
+                }
+
+                if (tileFree) {
+                    return {
+                        available: true,
+                        pos: new RoomPosition(parseInt(x), parseInt(y), this.roomName),
+                    }
+                }
+            }
+        }
+
+        return {
+            available: false,
+            pos: null
+        }
+    }
+
+    //private tileAvailable(x: number, y: number): boolean {
+    //    let results = this.Room.lookAt(x, y);
+    //    for (let r in results) {
+    //        let result = results[r];
+    //        if (result.constructionSite || result.structure || result.source || result.terrain === "wall") {
+    //            return false;
+    //        }
+    //    }
+
+    //    return true;
+    //}
+
+    private getStructureLimit(structure: string): number {
+        return (CONTROLLER_STRUCTURES as any)[structure][this.Room.controller.level];
     }
 }
 

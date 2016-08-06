@@ -23,7 +23,7 @@ export abstract class CreepObject extends GameObject {
     }
 
     protected getStorage(): Storage | Container {
-        let target = this.Creep.getTarget<Storage | Container>();
+        let target = this.Creep.getTarget<Storage | Container>(StructureStorage, StructureContainer);
         if (!target) {
             target = this.Creep.pos.findClosestByRange<Storage | Container>(FIND_STRUCTURES, {
                 filter: (c: Storage | Container) => {
@@ -39,7 +39,7 @@ export abstract class CreepObject extends GameObject {
     }
 
     protected getDroppedResource(): Resource {
-        let target = this.Creep.getTarget<Resource>();
+        let target = this.Creep.getTarget<Resource>(Resource);
         if (!target) {
             target = this.Creep.pos.findClosestByPath<Resource>(FIND_DROPPED_ENERGY, {
                 filter: (r: Resource) => {
@@ -62,8 +62,8 @@ export abstract class CreepObject extends GameObject {
             //console.log(creep.name + " | pickup: " + ErrorHelper.getErrorString(resp));
             switch (resp) {
                 case OK:
-                    //creep.clearTarget();
-                    //break;
+                //creep.clearTarget();
+                //break;
 
                 case ERR_FULL:
                     this.setState(successState);
@@ -152,7 +152,7 @@ export abstract class CreepObject extends GameObject {
     protected doHarvest(): boolean {
         let creep = this.Creep;
         if (creep.carry.energy < creep.carryCapacity) {
-            let target = creep.getTarget<Source | Mineral>();
+            let target = creep.getTarget<Source | Mineral>(Source, Mineral);
             if (!target) {
                 target = creep.setTarget(this.getSource());
             }
@@ -170,15 +170,15 @@ export abstract class CreepObject extends GameObject {
                                 break;
 
                             case ERR_NO_PATH:
-                                console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(moveResp));
-                                creep.clearTarget();
+                                //console.log(creep.name + " | doHarvest | moveTo: " + ErrorHelper.getErrorString(moveResp));
+                                target = creep.setTarget(this.getSource());
                                 break;
 
                             case ERR_TIRED:
                                 break;
 
                             default:
-                                console.log(creep.name + " | moveTo: " + ErrorHelper.getErrorString(moveResp));
+                                console.log(creep.name + " | doHarvest | moveTo: " + ErrorHelper.getErrorString(moveResp));
                                 break;
                         }
                         break;
@@ -187,7 +187,7 @@ export abstract class CreepObject extends GameObject {
                         return false;
 
                     default:
-                        console.log(creep.name + " | harvest: " + ErrorHelper.getErrorString(resp));
+                        console.log(creep.name + " | doHarvest | harvest: " + ErrorHelper.getErrorString(resp));
                         break;
                 }
             }

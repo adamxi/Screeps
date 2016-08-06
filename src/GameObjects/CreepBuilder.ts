@@ -34,7 +34,7 @@ export class CreepBuilder extends CreepObject {
 
             case CreepState.Building:
                 if (creep.carry.energy > 0) {
-                    let target = creep.getTarget<Structure | ConstructionSite>();
+                    let target = creep.getTarget<Structure | ConstructionSite>(Structure, ConstructionSite);
                     if (!target) {
                         let resp = RoomManager.roomManagers[creep.room.name].constructionManager.getNext();
                         if (resp) {
@@ -44,7 +44,7 @@ export class CreepBuilder extends CreepObject {
 
                     if (target) {
                         if (target instanceof Structure) {
-                            let targetHits = creep.getTargetInfo().targetHits;
+                            let targetHits = creep.getTargetInfo().params.targetHits;
                             if (target.hits < targetHits) {
                                 let resp = creep.repair(target);
 

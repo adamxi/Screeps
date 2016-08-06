@@ -15,6 +15,12 @@ declare enum CreepRole {
     Carrier
 }
 
+interface TargetInfo {
+    id: string;
+    params: any;
+    typeName: string;
+}
+
 interface Creep {
     foo(): number;
 
@@ -24,8 +30,8 @@ interface Creep {
     setRole(role: CreepRole): void;
     getRole(): CreepRole;
 
-    getTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(): T;
-    getTargetInfo(): any;
+    getTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(...types: Function[]): T;
+    getTargetInfo(): TargetInfo;
     setTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(object: T, params?: {}): T;
     clearTarget(): void;
 
@@ -37,8 +43,4 @@ interface Creep {
     showData(): void;
     showLog(): void;
     log(msg: string): void;
-}
-
-interface Game {
-    profiler: any;
 }

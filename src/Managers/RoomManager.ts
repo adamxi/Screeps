@@ -174,7 +174,7 @@ export class RoomManager {
 
         if (this.Room) {
             this.checkSpawn();
-            this.constructionManager.update(this.Room);
+            this.constructionManager.update();
             this.doDefence();
         }
     }

@@ -38,23 +38,33 @@ export module CreepEx {
         return this.memory[KEY_ROLE] as CreepRole;
     }
 
-    Creep.prototype.getTarget = function <T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(): T {
+    Creep.prototype.getTarget = function <T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(...types: Function[]): T {
         // Note: Flags do not have an id
         var targetInfo = this.memory[KEY_TARGET];
 
         if (targetInfo) {
-            return Game.getObjectById<T>(targetInfo.id);
+            let o = Game.getObjectById<T>(targetInfo.id);
+
+            if (types.length > 0) {
+                for (let i = 0; i < types.length; ++i) {
+                    if (o instanceof types[i]) {
+                        return o;
+                    }
+                }
+                return null;
+            }
+            return o;
         }
 
         return null;
     }
 
-    Creep.prototype.getTargetInfo = function (): any {
+    Creep.prototype.getTargetInfo = function (): TargetInfo {
         // Note: Flags do not have an id
         var targetInfo = this.memory[KEY_TARGET];
 
         if (targetInfo) {
-            return targetInfo.params;
+            return targetInfo;
         }
 
         return null;
@@ -63,11 +73,17 @@ export module CreepEx {
     Creep.prototype.setTarget = function <T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(target: T, params?: {}): T {
         // Note: Flags do not have an id
         if (target) {
+            let typeName = target.toString().substring(1).split(" ")[0].toLowerCase();
             (this as Creep).log("Set target: " + target.id);
-            this.memory[KEY_TARGET] = {
+            (this as Creep).say(typeName);
+
+            let targetInfo: TargetInfo = {
                 id: target.id,
                 params: params,
-            }
+                typeName: typeName,
+            };
+
+            this.memory[KEY_TARGET] = targetInfo;
         }
         return target;
     }

@@ -25,7 +25,7 @@ export class CreepCarrier extends CreepObject {
 
             case CreepState.Working:
                 if (creep.carry.energy > 0) {
-                    let target = creep.getTarget<Extension | Spawn | Tower>();
+                    let target = creep.getTarget<Extension | Spawn | Tower>(StructureExtension, Spawn, StructureTower);
                     if (!target) {
                         target = creep.pos.findClosestByRange<Extension | Spawn | Tower>(FIND_STRUCTURES, {
                             filter: (structure: Extension | Spawn | Tower) => {
