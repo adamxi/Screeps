@@ -35,13 +35,19 @@
     <TypeScriptCompile Include="src\Components\Timer.ts" />
     <TypeScriptCompile Include="src\Config\Config.ts" />
     <TypeScriptCompile Include="src\Extensions\CreepEx.ts" />
+    <TypeScriptCompile Include="src\Extensions\RoomPositionEx.ts" />
     <TypeScriptCompile Include="src\Extensions\RoomObjectEx.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepCarrier.ts" />
+    <TypeScriptCompile Include="src\GameObjects\StructureObject.ts" />
+    <TypeScriptCompile Include="src\GameObjects\TowerObject.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="src\Managers\ConstructionManager.ts" />
+    <TypeScriptCompile Include="src\Managers\EventManager.ts" />
     <TypeScriptCompile Include="src\Managers\DefenceManager.ts" />
     <TypeScriptCompile Include="src\Managers\GameManager.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepBuilder.ts" />
-    <TypeScriptCompile Include="src\Util\CreepFactory.ts" />
+    <TypeScriptCompile Include="src\Util\ObjectLoader.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepHarvester.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepObject.ts" />
     <TypeScriptCompile Include="src\GameObjects\CreepUpgrader.ts" />
@@ -55,11 +61,15 @@
     <TypeScriptCompile Include="src\Util\MathHelper.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="src\Util\PathHelper.ts" />
     <TypeScriptCompile Include="src\Util\Spawner.ts" />
+    <TypeScriptCompile Include="src\Util\TargetHelper.ts" />
+    <TypeScriptCompile Include="typings\extensions\Interfaces.d.ts" />
     <TypeScriptCompile Include="typings\extensions\Patches.d.ts" />
     <TypeScriptCompile Include="typings\extensions\Creep.d.ts" />
     <TypeScriptCompile Include="typings\extensions\Game.d.ts" />
     <TypeScriptCompile Include="typings\extensions\index.d.ts" />
+    <TypeScriptCompile Include="typings\extensions\RoomPosition.d.ts" />
     <TypeScriptCompile Include="typings\extensions\RoomObject.d.ts" />
     <TypeScriptCompile Include="typings\globals\lodash\index.d.ts" />
     <TypeScriptCompile Include="typings\globals\screeps\index.d.ts" />

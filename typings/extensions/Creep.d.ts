@@ -15,14 +15,9 @@ declare enum CreepRole {
     Carrier
 }
 
-interface TargetInfo {
-    id: string;
-    params: any;
-    typeName: string;
-}
-
 interface Creep {
-    foo(): number;
+    //foo(): number;
+    PathInfo: PathInfo;
 
     setState(state: CreepState, clearTarget?: boolean): void;
     getState(): CreepState;
@@ -34,9 +29,12 @@ interface Creep {
     getTargetInfo(): TargetInfo;
     setTarget<T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(object: T, params?: {}): T;
     clearTarget(): void;
+    moveToTarget<T extends RoomObject>(object?: T, requireOptimalPath?: boolean, minimumDistToTarget?: number): number;
 
-    setMemory(key: string, value: any, override?: boolean): void
-    clearMemory(key: string): void;
+    setPath(pathInfo: PathInfo): void;
+
+    remember(key: string, value: any, override?: boolean): void
+    forget(key: string): void;
 
     // Debug methods
     showTarget(): void;

@@ -1,36 +1,105 @@
 import {MathHelper} from "./../Util/MathHelper";
+import {PathHelper} from "./../Util/PathHelper";
 
 export class ResourceManager {
-    public static locateResources(room: Room) {
-        var resources: any[] = room.find(FIND_SOURCES);
+    public static managers: { [id: string]: ResourceManager; } = {};
+
+    private room: Room;
+
+    constructor(room: Room) {
+        ResourceManager.managers[room.name] = this;
+
+        this.room = room;
+        this.locateResources();
+    }
+
+    public get SourceInfo(): SourceInfo[] {
+        return this.room.memory["sources"] as SourceInfo[];
+    }
+
+    public set SourceInfo(value: SourceInfo[]) {
+        this.room.memory["sources"] = value;
+    }
+
+    private locateResources() {
+        let sources = this.room.find<Source>(FIND_SOURCES);
         var sourceCache: any = {};
 
-        for (let i = resources.length; --i >= 0;) {
-            var resource = resources[i];
+        for (let i = sources.length; --i >= 0;) {
+            var resource = sources[i];
             var pos = resource.pos;
             var availableSlots = 0;
-            var objects: any = room.lookAtArea(pos.y - 1, pos.x - 1, pos.y + 1, pos.x + 1, true);
+            var area = this.room.lookAtArea(pos.y - 1, pos.x - 1, pos.y + 1, pos.x + 1, true) as LookAtResultWithPos[];
 
-            for (let j = objects.length; --j >= 0;) {
-                if (objects[j].terrain === "plain") {
+            for (let j = area.length; --j >= 0;) {
+                if (area[j].terrain === "plain") {
                     availableSlots++;
                 }
             }
 
-            sourceCache[resource.id] = {
-                "sourceId": resource.id,
-                "room": room.name,
-                "totalSlots": availableSlots,
-                "x": resource.pos.x,
-                "y": resource.pos.y
-            };
+            let sourceInfo: SourceInfo = {
+                sourceId: resource.id,
+                room: this.room.name,
+                totalSlots: availableSlots,
+                x: resource.pos.x,
+                y: resource.pos.y
+            }
+
+            sourceCache[resource.id] = sourceInfo;
         }
 
-        room.memory["sources"] = sourceCache;
+        this.SourceInfo = sourceCache;
     }
 
-    public static getBestSource2(creep: Creep): Source {
-        return creep.pos.findClosestByPath<Source>(FIND_SOURCES_ACTIVE);
+    public static GetSourceInfo(room: Room): SourceInfo[] {
+        return room.memory["sources"] as SourceInfo[];
+    }
+
+    private hasHostilesInRange(obj: RoomObject): boolean {
+        let p = obj.pos;
+        let r = 4;
+        let creeps = obj.room.lookForAtArea(LOOK_CREEPS, p.y - r, p.x - r, p.y + r, p.x + r, true) as LookAtResultWithPos[];
+        for (let i = creeps.length; --i >= 0;) {
+            if (!creeps[i].creep.my) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public getBestSource2(creep: Creep, currentSource?: Source): Source {
+        //return creep.pos.findClosestByPath<Source>(FIND_SOURCES_ACTIVE, {
+        //    filter: (s: Source) => {
+        //        return !this.hasHostilesInRange(s);
+        //    },
+        //    algorithm: "astar"
+        //});
+
+        let sources = creep.room.find<Source>(FIND_SOURCES_ACTIVE);
+        let sortedSources = _.sortBy(sources, (s) => {
+            return MathHelper.squareDist(creep.pos, s.pos);
+        });
+
+        for (let i = 0; i < sortedSources.length; i++) {
+            let s = sortedSources[i];
+            if (currentSource && currentSource.id === s.id) {
+                continue;
+            }
+            if (!this.hasHostilesInRange(s) && PathHelper.hasPathToTarget(creep, s, false)) {
+                //console.log("Getting best source: " + creep.name + " " + creep.pos + " | " + s.pos);
+                return s;
+            }
+        }
+
+        return sortedSources[0];
+
+        //let source = creep.pos.findClosestByRange<Source>(FIND_SOURCES_ACTIVE, {
+        //    filter: (s: Source) => {
+        //        return PathHelper.hasPathToTarget(creep, s) && !this.hasHostilesInRange(s);
+        //    }
+        //});
+
+        //return source;
 
         //var room = creep.room;
         //var pos = creep.pos;
@@ -85,7 +154,7 @@ export class ResourceManager {
         //        return Game.getObjectById<Source>(sourceId);
         //    }
         //}
-        
+
         //var maxSourceId = _.max(sources, s => s.totalSlots);
         //return Game.getObjectById<Source>(maxSourceId);
     }

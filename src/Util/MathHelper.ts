@@ -1,5 +1,5 @@
 ﻿export class MathHelper {
-    private static dirToVector: [{ x: number, y: number }] = [
+    public static dirToVector: [{ x: number, y: number }] = [
         { x: 0, y: -1 },
         { x: 1, y: -1 },
         { x: 1, y: 0 },

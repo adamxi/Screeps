@@ -1,6 +1,6 @@
 export class Profiler {
     private static usedOnStart = 0;
-    private static enabled = false;
+    public static enabled = false;
     private static depth = 0;
 
     private static setupProfiler() {
@@ -16,6 +16,12 @@ export class Profiler {
                 Profiler.setupMemory('profile', duration || 100, filter);
             },
             reset: Profiler.resetMemory,
+            print() {
+                Profiler.Profiler.printProfile();
+            },
+            printAll() {
+                Profiler.Profiler.printProfile(-1);
+            },
         };
 
         Profiler.overloadCPUCalc();
@@ -97,6 +103,26 @@ export class Profiler {
         return objectToWrap;
     }
 
+    private static profileClassFunctions(object: any, label?: any) {
+        if (!label) {
+            label = object.name;
+        }
+
+        const objectToWrap = object.prototype ? object.prototype : object;
+
+        Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
+            const extendedLabel = `${label}.${functionName}`;
+            try {
+                if (typeof objectToWrap[functionName] === 'function' && functionName !== 'getUsed') {
+                    const originalFunction = objectToWrap[functionName];
+                    objectToWrap[functionName] = Profiler.profileFunction(originalFunction, extendedLabel);
+                }
+            } catch (e) { } /* eslint no-empty:0 */
+        });
+
+        return objectToWrap;
+    }
+
     private static profileFunction(fn: any, functionName: any) {
         const fnName = functionName || fn.name;
         if (!fnName) {
@@ -109,15 +135,15 @@ export class Profiler {
     }
 
     private static Profiler = {
-        printProfile() {
-            console.log(Profiler.Profiler.output());
+        printProfile(lines = 20) {
+            console.log(Profiler.Profiler.output(lines));
         },
 
         emailProfile() {
             Game.notify(Profiler.Profiler.output(), 0);
         },
 
-        output() {
+        output(lines = 20) {
             const elapsedTicks = Game.time - Memory["profiler"].enabledTick + 1;
             const header = 'calls\t\ttime\t\tavg\t\tfunction';
             const footer = [
@@ -125,7 +151,11 @@ export class Profiler {
                 `Total: ${Memory["profiler"].totalTime.toFixed(2)}`,
                 `Ticks: ${elapsedTicks}`,
             ].join('\t');
-            return [].concat(header, Profiler.Profiler.lines().slice(0, 20), footer).join('\n');
+            if (lines > 0) {
+                return [].concat(header, Profiler.Profiler.lines().slice(0, lines), footer).join('\n');
+            } else {
+                return [].concat(header, Profiler.Profiler.lines(), footer).join('\n');
+            }
         },
 
         lines() {
@@ -202,7 +232,7 @@ export class Profiler {
         shouldPrint() {
             const streaming = Profiler.Profiler.type() === 'stream';
             const profiling = Profiler.Profiler.type() === 'profile';
-            const onEndingTick = Memory["profiler"].disableTick === Game.time;
+            const onEndingTick = Game.time >= Memory["profiler"].disableTick;
             return streaming || (profiling && onEndingTick);
         },
 
@@ -246,6 +276,10 @@ export class Profiler {
 
     public static registerObject(object: any, label: any) {
         return Profiler.profileObjectFunctions(object, label);
+    }
+
+    public static registerClass(object: any, label?: any) {
+        return Profiler.profileClassFunctions(object, label);
     }
 
     public static registerFN(fn: any, functionName: any) {

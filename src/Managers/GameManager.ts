@@ -2,7 +2,7 @@
 import {RoomManager} from "./../Managers/RoomManager";
 import {ConstructionManager} from "./../Managers/ConstructionManager";
 import {GameObject} from "./../GameObjects/GameObject";
-import {CreepFactory} from "./../Util/CreepFactory";
+import {ObjectLoader} from "./../Util/ObjectLoader";
 
 export class GameManager {
     private static ticksToRefresh = 60;
@@ -14,7 +14,14 @@ export class GameManager {
         Config.initialize();
 
         for (let i in Game.creeps) {
-            let obj = CreepFactory.load(Game.creeps[i]);
+            let obj = ObjectLoader.load(Game.creeps[i]);
+            if (obj) {
+                GameObject.add(obj);
+            }
+        }
+
+        for (let i in Game.structures) {
+            let obj = ObjectLoader.load(Game.structures[i]);
             if (obj) {
                 GameObject.add(obj);
             }
@@ -23,7 +30,6 @@ export class GameManager {
         RoomManager.roomManagers = {};
         for (let i in Game.rooms) {
             var roomManager = new RoomManager(Game.rooms[i]);
-            RoomManager.roomManagers[roomManager.roomName] = roomManager;
         }
     }
 

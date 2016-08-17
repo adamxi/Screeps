@@ -3,14 +3,16 @@
     private interval: number;
     private onElapsed: { (timer: Timer): void };
     private autoReset: boolean;
+    private memoryRoot: any;
 
-    constructor(id: string, interval: number, onElapsed: { (timer: Timer): void }) {
+    constructor(id: string, interval: number, onElapsed: { (timer: Timer): void }, memoryRoot?: any) {
         this.id = id;
         this.interval = interval;
         this.onElapsed = onElapsed;
+        this.memoryRoot = memoryRoot ? memoryRoot : Memory;
 
-        if (!Memory["Timers"]) {
-            Memory["Timers"] = {};
+        if (!this.memoryRoot["timers"]) {
+            this.memoryRoot["timers"] = {};
         }
 
         if (!this.Tick) {
@@ -19,10 +21,10 @@
     }
 
     private get Tick(): number {
-        return Memory["Timers"][this.id];
+        return this.memoryRoot["timers"][this.id];
     }
     private set Tick(value: number) {
-        Memory["Timers"][this.id] = value;
+        this.memoryRoot["timers"][this.id] = value;
     }
 
     public reset(): void {

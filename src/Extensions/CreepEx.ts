@@ -1,6 +1,9 @@
 ﻿import {CreepObject} from "./../GameObjects/CreepObject";
 import {Logger} from "./../Util/Logger";
 import {ErrorHelper} from "./../Util/ErrorHelper";
+import {MathHelper} from "./../Util/MathHelper";
+import {PathHelper, BlockType} from "./../Util/PathHelper";
+import {Config} from "./../Config/Config";
 
 export module CreepEx {
     var KEY_STATE = "state";
@@ -8,15 +11,14 @@ export module CreepEx {
     var KEY_TARGET = "targetInfo";
     var KEY_LOG = "showLog";
 
-    //Object.defineProperty(Creep.prototype, "foo", {
-    //    get: function () {
-    //        return "a";
-    //    }
-    //    //,
-    //    //set: function (val) {
-    //    //    this.loc = val;
-    //    //}
-    //});
+    Object.defineProperty(Creep.prototype, "PathInfo", {
+        get: function (): PathInfo {
+            return this.memory["pathInfo"];
+        },
+        set: function (value: PathInfo) {
+            this.memory["pathInfo"] = value;
+        }
+    });
 
     Creep.prototype.setState = function (state: CreepState, clearTarget = true): void {
         (this as Creep).log("Setting State: " + CreepState[state].toString() + " | clearTarget: " + clearTarget);
@@ -40,7 +42,7 @@ export module CreepEx {
 
     Creep.prototype.getTarget = function <T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(...types: Function[]): T {
         // Note: Flags do not have an id
-        var targetInfo = this.memory[KEY_TARGET];
+        var targetInfo = this.memory[KEY_TARGET] as TargetInfo;
 
         if (targetInfo) {
             let o = Game.getObjectById<T>(targetInfo.id);
@@ -61,7 +63,7 @@ export module CreepEx {
 
     Creep.prototype.getTargetInfo = function (): TargetInfo {
         // Note: Flags do not have an id
-        var targetInfo = this.memory[KEY_TARGET];
+        var targetInfo = this.memory[KEY_TARGET] as TargetInfo;
 
         if (targetInfo) {
             return targetInfo;
@@ -80,33 +82,153 @@ export module CreepEx {
             let targetInfo: TargetInfo = {
                 id: target.id,
                 params: params,
-                typeName: typeName,
+                typeName: typeName
             };
-
             this.memory[KEY_TARGET] = targetInfo;
         }
         return target;
     }
 
     Creep.prototype.clearTarget = function (): void {
-        if (this.memory[KEY_TARGET]) {
+        if (this.memory[KEY_TARGET] != undefined) {
             (this as Creep).log("Clear target: " + this.memory[KEY_TARGET].id);
-            this.clearMemory(KEY_TARGET);
+            (this as Creep).forget(KEY_TARGET);
         }
     }
 
-    Creep.prototype.setMemory = function (key: string, value: any, override = true): void {
-        if (override || !this.memory[key]) {
+    Creep.prototype.moveToTarget = function <T extends RoomObject>(object?: T, requireOptimalPath = true, minimumDistToTarget = 0): number {
+        if ((this as Creep).fatigue > 0) {
+            return ERR_TIRED;
+        }
+
+        let targetPos: RoomPosition;
+        if (object) {
+            targetPos = object.pos;
+        } else {
+            let t = (this as Creep).getTarget();
+            if (t) {
+                targetPos = t.pos;
+            }
+        }
+
+        if (!targetPos) {
+            return ERR_INVALID_TARGET;
+        }
+
+        let creepPos = (this as Creep).pos;
+        if (creepPos.x === targetPos.x && creepPos.y === targetPos.y) {
+            // Destination reached.
+            let pathInfo = (this as Creep).PathInfo;
+            if (pathInfo) {
+                PathHelper.pathBlocked(pathInfo.id);
+                (this as Creep).forget("pathInfo");
+            }
+            return OK;
+        }
+
+        let pathInfo = (this as Creep).PathInfo;
+        if (pathInfo) {
+            if (creepPos.x === pathInfo.dest.x && creepPos.y === pathInfo.dest.y) {
+                // Destination reached.
+                PathHelper.clearBlocked(pathInfo.id);
+                (this as Creep).forget("pathInfo");
+                return OK;
+
+            } else if (pathInfo.dest.x != targetPos.x || pathInfo.dest.y != targetPos.y) {
+                // Object position and path destination are not equal - reset pathInfo.
+                pathInfo = null;
+
+            } else if (!pathInfo.path) {
+                return OK;
+            }
+        }
+
+        if (!pathInfo) {
+            //console.log("Getting path: " + (this as Creep).name + " " + creepPos + " | " + targetPos);
+            pathInfo = PathHelper.getPath((this as Creep), targetPos);
+            if (requireOptimalPath && !PathHelper.hasPathToTarget((this as Creep), targetPos)) {
+                return ERR_NO_PATH;
+            }
+
+            //if (PathHelper.isPathBlocked((this as Creep).room, pathInfo.path)) {
+            //    return ERR_NO_PATH;
+            //}
+
+            (this as Creep).setPath(pathInfo);
+        }
+
+        let dir = ~~pathInfo.path.charAt(0); // Parse char to int
+        switch (PathHelper.isTileBlocked(creepPos, dir)) {
+            case BlockType.Free:
+                pathInfo.path = pathInfo.path.substring(1);
+                break;
+
+            case BlockType.Temporarily:
+                if (!requireOptimalPath &&
+                    MathHelper.squareDist(creepPos, pathInfo.dest) <= minimumDistToTarget * minimumDistToTarget) {
+                    return OK;
+                }
+
+                console.log("Path Temporarily blocked: " + (this as Creep).name + " | " + pathInfo.id + " " + pathInfo.blockCount);
+
+                PathHelper.pathBlocked(pathInfo.id);
+                if (++pathInfo.blockCount >= Config.PATHFINDING.MAX_BLOCKED_TICKS) {
+                    //let oldDir = dir;
+                    //while (oldDir === dir) {
+                    //    dir = (Math.random() * 8) >> 0;
+                    //}
+
+                    pathInfo = PathHelper.getPath((this as Creep), targetPos);
+                    if (PathHelper.isPathBlocked((this as Creep).room, pathInfo.path)) {
+                        PathHelper.invalidatePath(pathInfo.id); // Do not cache blocked avoidance-paths
+                        pathInfo = PathHelper.getPath((this as Creep), targetPos);
+                    }
+
+                    if (requireOptimalPath && !PathHelper.hasPathToTarget((this as Creep), targetPos)) {
+                        (this as Creep).forget("pathInfo");
+                        return ERR_NO_PATH;
+                    }
+
+                    (this as Creep).setPath(pathInfo);
+                    dir = ~~pathInfo.path.charAt(0);
+                    pathInfo.path = pathInfo.path.substring(1);
+                }
+
+                break;
+
+            case BlockType.Permanently:
+                if (!requireOptimalPath &&
+                    MathHelper.squareDist(creepPos, pathInfo.dest) <= minimumDistToTarget * minimumDistToTarget) {
+                    return OK;
+                }
+                //console.log("Path Permanently blocked: " + (this as Creep).name + " | " + pathInfo.id);
+                PathHelper.invalidatePath(pathInfo.id);
+                (this as Creep).forget("pathInfo");
+                return ERR_NO_PATH;
+        }
+
+        return (this as Creep).move(dir);
+    }
+
+    Creep.prototype.setPath = function (pathInfo: PathInfo): void {
+        //console.log("Setting new path: " + (this as Creep).name + " | " + pathInfo.id + " | " + pathInfo.dest + " | " + pathInfo.path);
+        pathInfo.path = pathInfo.path.substring(4);
+        pathInfo.blockCount = 0;
+        (this as Creep).PathInfo = pathInfo;
+    }
+
+    Creep.prototype.remember = function (key: string, value: any, override = true): void {
+        if (override || this.memory[key] == undefined) {
             this.memory[key] = value;
         }
     }
 
-    Creep.prototype.clearMemory = function (key: string): void {
+    Creep.prototype.forget = function (key: string): void {
         delete this.memory[key];
     }
 
     Creep.prototype.showTarget = function (): void {
-        this.say("!");
+        (this as Creep).say("!");
         var target = (this as Creep).getTarget();
 
         if (target) {

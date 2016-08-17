@@ -1,6 +1,6 @@
 import {GameObject} from "./../GameObjects/GameObject";
 import {CreepObject} from "./../GameObjects/CreepObject";
-import {CreepFactory} from "./../Util/CreepFactory";
+import {ObjectLoader} from "./../Util/ObjectLoader";
 import {ErrorHelper} from "./../Util/ErrorHelper";
 import {MathHelper} from "./../Util/MathHelper";
 import {Config} from "./../Config/Config";
@@ -51,13 +51,13 @@ export class Spawner {
 
             let nextId = Spawner.getNextId(role);
             let name = Config.ROLE_TO_STRING[role] + "_" + nextId;
-            let memory = { role: role, state: CreepState.Idle, roleId: nextId };
+            let memory = { role: role, roleId: nextId };
             let body = Spawner.getBestBody(currentEnergy, partConfigs);
 
             if (body) {
                 let spawnResponse = spawn.createCreep(body, name, memory);
                 if (typeof spawnResponse == "string") {
-                    let obj = CreepFactory.load(Game.creeps[name]);
+                    let obj = ObjectLoader.load(Game.creeps[name]);
                     GameObject.add(obj);
                     return obj;
                 } else {

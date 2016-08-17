@@ -1,5 +1,6 @@
 ﻿import {CreepObject} from "./CreepObject";
 import {ErrorHelper} from "./../Util/ErrorHelper"
+import {Config} from "./../Config/Config"
 
 export class CreepUpgrader extends CreepObject {
     constructor(creep: Creep) {
@@ -10,6 +11,16 @@ export class CreepUpgrader extends CreepObject {
         var creep = this.Creep;
 
         switch (creep.getState()) {
+            case CreepState.Idle:
+                if (!this.doIdle()) {
+                    if (creep.carry.energy > 0) {
+                        this.setState(CreepState.Upgrading);
+                    } else {
+                        this.setState(CreepState.Collecting);
+                    }
+                }
+                break;
+
             case CreepState.Harvesting:
                 if (!this.doHarvest()) {
                     this.setState(CreepState.Upgrading);
@@ -17,17 +28,7 @@ export class CreepUpgrader extends CreepObject {
                 break;
 
             case CreepState.Collecting:
-                if (creep.carry.energy < creep.carryCapacity) {
-                    if (this.doPickupEnergy(CreepState.Upgrading)) {
-                        break;
-                    }
-
-                    if (!this.doWithdrawEnergy(CreepState.Upgrading)) {
-                        this.setState(CreepState.Harvesting);
-                    }
-                } else {
-                    this.setState(CreepState.Upgrading);
-                }
+                this.doCollectEnergy(CreepState.Upgrading, CreepState.Harvesting, CreepState.Upgrading);
                 break;
 
             case CreepState.Upgrading:
@@ -39,7 +40,7 @@ export class CreepUpgrader extends CreepObject {
                             break;
 
                         case ERR_NOT_IN_RANGE:
-                            creep.moveTo(creep.room.controller);
+                            creep.moveToTarget(creep.room.controller);
                             break;
 
                         case ERR_NO_BODYPART:

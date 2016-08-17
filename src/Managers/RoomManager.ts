@@ -1,12 +1,13 @@
 import {Spawner} from "./../Util/Spawner";
 import {CreepConstraint} from "./../Util/CreepConstraint";
-import {CreepFactory} from "./../Util/CreepFactory";
+import {ObjectLoader} from "./../Util/ObjectLoader";
 import {GameObject} from "./../GameObjects/GameObject";
 import {CreepObject} from "./../GameObjects/CreepObject";
 import {ResourceManager} from "./../Managers/ResourceManager";
 import {ConstructionManager} from "./../Managers/ConstructionManager";
 import {DefenceManager} from "./../Managers/DefenceManager";
 import {MathHelper} from "./../Util/MathHelper";
+import {Profiler} from "./../Components/screeps-profiler";
 
 export class RoomManager {
     public static roomManagers: { [id: string]: RoomManager; } = {};
@@ -14,15 +15,18 @@ export class RoomManager {
 
     public roomName: string;
     public constructionManager: ConstructionManager;
+    public resourceManager: ResourceManager;
 
     constructor(room: Room) {
+        RoomManager.roomManagers[room.name] = this;
+
         this.roomName = room.name;
         this.constructionManager = new ConstructionManager(room);
         this.SpawnTimer = 30;
-
+        
         this.initCreepConstraints();
         this.countPopulation();
-        ResourceManager.locateResources(room);
+        this.resourceManager = new ResourceManager(room);
     }
 
     private get Room(): Room {
@@ -59,9 +63,14 @@ export class RoomManager {
 
     private initCreepConstraints() {
         this.CreepConstraints = [];
+        
         this.CreepConstraints[CreepRole.Harvester] = new CreepConstraint(CreepRole.Harvester, 10, 5);
         this.CreepConstraints[CreepRole.Upgrader] = new CreepConstraint(CreepRole.Upgrader, 5, 4);
-        this.CreepConstraints[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 4);
+        if (this.roomName === "sim") {
+            this.CreepConstraints[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 10);
+        } else {
+            this.CreepConstraints[CreepRole.Builder] = new CreepConstraint(CreepRole.Builder, 8, 4);
+        }
         this.CreepConstraints[CreepRole.Carrier] = new CreepConstraint(CreepRole.Carrier, 2, 2);
 
         RoomManager.spawnConditions = [];
@@ -175,19 +184,6 @@ export class RoomManager {
         if (this.Room) {
             this.checkSpawn();
             this.constructionManager.update();
-            this.doDefence();
-        }
-    }
-
-    private doDefence(): void {
-        var hostiles = this.Room.find<Creep>(FIND_HOSTILE_CREEPS);
-
-        if (hostiles.length > 0) {
-            var towers = this.Room.find<StructureTower>(FIND_MY_STRUCTURES, {
-                filter: { structureType: STRUCTURE_TOWER }
-            });
-
-            towers.forEach(tower => tower.attack(hostiles[0]));
         }
     }
 }
