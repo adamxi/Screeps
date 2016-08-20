@@ -151,7 +151,8 @@ export module CreepEx {
         if (!pathInfo) {
             //console.log("Getting path: " + (this as Creep).name + " " + creepPos + " | " + targetPos);
             pathInfo = PathHelper.getPath((this as Creep), targetPos);
-            if (requireOptimalPath && !PathHelper.hasPathInProximity((this as Creep), targetPos)) {
+            if (requireOptimalPath && !PathHelper.isPathInProximity(pathInfo, targetPos)) {
+                PathHelper.invalidatePath(pathInfo.id);
                 return ERR_NO_PATH;
             }
 
@@ -163,7 +164,7 @@ export module CreepEx {
         }
 
         let dir = ~~pathInfo.path.charAt(0); // Parse char to int
-        switch (PathHelper.isTileBlocked(creepPos, dir)) {
+        switch (PathHelper.isDirBlocked(creepPos, dir)) {
             case BlockType.Free:
                 pathInfo.path = pathInfo.path.substring(1);
                 break;
@@ -184,12 +185,13 @@ export module CreepEx {
                     //}
 
                     pathInfo = PathHelper.getPath((this as Creep), targetPos);
-                    if (PathHelper.isPathBlocked((this as Creep).room, pathInfo.path)) {
+                    if (PathHelper.isPathBlocked(pathInfo)) {
                         PathHelper.invalidatePath(pathInfo.id); // Do not cache blocked avoidance-paths
                         pathInfo = PathHelper.getPath((this as Creep), targetPos);
                     }
 
-                    if (requireOptimalPath && !PathHelper.hasPathInProximity((this as Creep), targetPos)) {
+                    if (requireOptimalPath && !PathHelper.isPathInProximity(pathInfo, targetPos)) {
+                        PathHelper.invalidatePath(pathInfo.id);
                         (this as Creep).forget("pathInfo");
                         return ERR_NO_PATH;
                     }

@@ -86,9 +86,10 @@ export class ResourceManager {
                 continue;
             }
 
-            if (!this.hasHostilesInRange(s) && PathHelper.hasPathInProximity(creep, s, false)) {
-                let pathInfo = PathHelper.getPath(creep, s);
-                if (!PathHelper.isPathBlocked(creep.room, pathInfo.path)) {
+            let pathInfo = PathHelper.getPath(creep, s);
+            if (!this.hasHostilesInRange(s) && PathHelper.isPathInProximity(pathInfo, s)) {
+                
+                if (!PathHelper.isPathBlocked(pathInfo)) {
                     //console.log("Getting best source: " + creep.name + " " + creep.pos + " | " + s.pos);
                     return s;
                 }

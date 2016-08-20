@@ -117,18 +117,29 @@ export class PathHelper {
         PathHelper.Paths[id].blockCount = 0;
     }
 
-    public static getNextClockwiseDir(dir: number): number {
-        ++dir;
-        if (dir > 8) {
-            dir -= 8;
+    public static isPathInProximity(pathInfo: PathInfo, target: RoomPosition | { pos: RoomPosition }, maxRange = 1): boolean {
+        let destPos: RoomPosition;
+        if (!(target instanceof RoomPosition)) {
+            destPos = target.pos;
+        } else {
+            destPos = target;
         }
-        return dir;
+
+        if (MathHelper.squareDist(pathInfo.dest, destPos) > maxRange * maxRange ||
+            destPos.roomName != pathInfo.dest.roomName) {
+            //console.log("Path incomplete | dest: " + toPos + " != " + targetPos);
+            return false;
+        }
+
+        return true;
     }
 
-    public static isPathBlocked(room: Room, path: string): boolean {
+    public static isPathBlocked(pathInfo: PathInfo): boolean {
+        let path = pathInfo.path;
+        let room = Game.rooms[pathInfo.room];
         let x = ~~path.substr(0, 2);
         let y = ~~path.substr(2, 2);
-        if (PathHelper.isTileBlocked2(room, x, y)) {
+        if (PathHelper.isTileBlocked(room, x, y)) {
             return true;
         }
 
@@ -139,14 +150,14 @@ export class PathHelper {
             x += vec.x;
             y += vec.y;
 
-            if (PathHelper.isTileBlocked2(room, x, y)) {
+            if (PathHelper.isTileBlocked(room, x, y)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static isTileBlocked2(room: Room, x: number, y: number): boolean {
+    private static isTileBlocked(room: Room, x: number, y: number): boolean {
         let tiles = room.lookAt(x, y) as LookAtResult[];
 
         for (let i = tiles.length; --i >= 0;) {
@@ -161,45 +172,22 @@ export class PathHelper {
         return false;
     }
 
-    public static isTileBlocked(pos: RoomPosition, dir: number): BlockType {
+    public static isDirBlocked(pos: RoomPosition, dir: number): BlockType {
         let vec = MathHelper.dirToVector[dir - 1];
-        let x = pos.x + vec.x;
-        let y = pos.y + vec.y;
-        let tiles = Game.rooms[pos.roomName].lookAt(x, y) as LookAtResult[];
-        let blockTyped = BlockType.Free;
+        let tiles = Game.rooms[pos.roomName].lookAt(pos.x + vec.x, pos.y + vec.y) as LookAtResult[];
 
         for (let i = tiles.length; --i >= 0;) {
             let tile = tiles[i];
             if (tile.creep) {
-                blockTyped = BlockType.Temporarily;
+                return BlockType.Temporarily;
+
             } else if ((tile.structure && !Config.WALKABLE_STRUCTURES[tile.structure.structureType]) ||
                 tile.terrain === "wall") {
                 return BlockType.Permanently;
             }
         }
 
-        return blockTyped;
-    }
-
-    public static hasPathInProximity(from: RoomPosition | { pos: RoomPosition }, to: RoomPosition | { pos: RoomPosition }, autoInvalidate = true, maxRange = 1): boolean {
-        let pathInfo = PathHelper.getPath(from, to);
-        let toPos: RoomPosition;
-        if (!(to instanceof RoomPosition)) {
-            toPos = to.pos;
-        } else {
-            toPos = to;
-        }
-
-        if (MathHelper.squareDist(pathInfo.dest, toPos) > maxRange * maxRange ||
-            toPos.roomName != pathInfo.dest.roomName) {
-            //console.log("Path incomplete | dest: " + toPos + " != " + targetPos);
-            if (autoInvalidate) {
-                PathHelper.invalidatePath(pathInfo.id);
-            }
-            return false;
-        }
-
-        return true;
+        return BlockType.Free;
     }
 }
 
