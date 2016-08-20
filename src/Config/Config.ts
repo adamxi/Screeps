@@ -13,8 +13,11 @@
     }
 
     public static PATHFINDING = {
-        MAX_BLOCKED_TICKS: 2,
+        CREEP_MAX_BLOCKED_TICKS: 2,
+        PATH_MAX_BLOCKED_TICKS: 10,
     }
+
+    public static WALKABLE_STRUCTURES: { [id: string]: boolean } = {};
 
     public static PATHFINDING_DEFAULT_OPTS: FindPathOpts = {
         ignoreCreeps: false,
@@ -25,6 +28,9 @@
     public static initialize() {
         Config.initMemory();
         Config.initStructurePriorities();
+
+        Config.WALKABLE_STRUCTURES[STRUCTURE_ROAD] = true;
+        Config.WALKABLE_STRUCTURES[STRUCTURE_CONTAINER] = true;
     }
 
     private static initMemory() {

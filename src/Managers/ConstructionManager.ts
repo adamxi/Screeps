@@ -65,7 +65,7 @@ export class ConstructionManager {
 
     public timerElapsed(timer: Timer): void {
         this.mapStructures();
-        //this.planConstructions();
+        this.planConstructions();
         //console.log("ConstructionManager update");
     }
 
@@ -203,11 +203,11 @@ export class ConstructionManager {
         let hasController = this.Room.controller && this.Room.controller.my;
 
         if (hasController && this.ConstructionSiteCount < MAX_CONSTRUCTION_SITES) {
-            //this.constructSpawn();
-            //this.constructRoads();
+            this.constructSpawn();
+            this.constructRoads();
             this.constructExtensions();
-            //this.constructContainers();
-            //this.constructTowers();
+            this.constructContainers();
+            this.constructTowers();
             this.constructStorage();
         }
     }
@@ -678,31 +678,6 @@ export class ConstructionManager {
             }
         }
         return false;
-        //if (this.hasStructure(type, x, y - 1)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x + 1, y - 1)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x + 1, y)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x + 1, y + 1)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x, y + 1)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x - 1, y + 1)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x - 1, y)) {
-        //    return true;
-        //}
-        //if (this.hasStructure(type, x - 1, y - 1)) {
-        //    return true;
-        //}
-        //return false;
     }
 
     private hasStructure(x: number, y: number, type: string): boolean {

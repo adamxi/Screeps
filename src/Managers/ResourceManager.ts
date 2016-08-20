@@ -79,15 +79,19 @@ export class ResourceManager {
         let sortedSources = _.sortBy(sources, (s) => {
             return MathHelper.squareDist(creep.pos, s.pos);
         });
-
+        debugger;
         for (let i = 0; i < sortedSources.length; i++) {
             let s = sortedSources[i];
             if (currentSource && currentSource.id === s.id) {
                 continue;
             }
-            if (!this.hasHostilesInRange(s) && PathHelper.hasPathToTarget(creep, s, false)) {
-                //console.log("Getting best source: " + creep.name + " " + creep.pos + " | " + s.pos);
-                return s;
+
+            if (!this.hasHostilesInRange(s) && PathHelper.hasPathInProximity(creep, s, false)) {
+                let pathInfo = PathHelper.getPath(creep, s);
+                if (!PathHelper.isPathBlocked(creep.room, pathInfo.path)) {
+                    //console.log("Getting best source: " + creep.name + " " + creep.pos + " | " + s.pos);
+                    return s;
+                }
             }
         }
 

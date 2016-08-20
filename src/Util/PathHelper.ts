@@ -22,7 +22,7 @@ export class PathHelper {
     }
 
     public static clone(pathInfo: PathInfo): PathInfo {
-        let newInfo: PathInfo = {
+        return {
             id: pathInfo.id,
             path: pathInfo.path,
             room: pathInfo.room,
@@ -30,7 +30,6 @@ export class PathHelper {
             dest: new RoomPosition(pathInfo.dest.x, pathInfo.dest.y, pathInfo.dest.roomName),
             blockCount: pathInfo.blockCount,
         };
-        return newInfo;
     }
 
     public static getPath(from: RoomPosition | { pos: RoomPosition }, to: RoomPosition | { pos: RoomPosition }, opts?: FindPathOpts): PathInfo {
@@ -47,10 +46,6 @@ export class PathHelper {
             toPos = to;
         }
 
-        //if (!opts) {
-        //    opts = Config.PATHFINDING_DEFAULT_OPTS;
-        //}
-
         //let fromKey = fromPos.roomName + "_" + fromPos.x + "," + fromPos.y;
         //let toKey = toPos.roomName + "_" + toPos.x + "," + toPos.y;
         //let optsKey = opts ? "|" + JSON.stringify(opts).replace(/{|}|\"/g, "") : "";
@@ -66,9 +61,9 @@ export class PathHelper {
             return PathHelper.clone(cachedPathInfo);
         }
 
-        //if (!opts) {
-        opts = Config.PATHFINDING_DEFAULT_OPTS;
-        //}
+        if (!opts) {
+            opts = Config.PATHFINDING_DEFAULT_OPTS;
+        }
         ++Memory["debug"]["pathsComputed"];
         let pathSteps = fromPos.findPathTo(toPos, opts);
         let finalStep = pathSteps[pathSteps.length - 1];
@@ -104,21 +99,6 @@ export class PathHelper {
                 direction: PathHelper.inverseDir[step.direction - 1]
             });
         }
-
-        //let len = path.length;
-        //for (var i = 0; i < len; i++) {
-        //    let step = path[i];
-
-        //    let dx = -step.dx;
-        //    let dy = -step.dy;
-
-        //    let x = step.x - step.dx;
-        //    let y = step.y - step.dy;
-
-        //    let direction = PathHelper.inverseDir[step.direction - 1];
-
-        //    inversedPath.unshift({ x: x, y: y, dx: dx, dy: dy, direction: direction });
-        //}
         return inversedPath;
     }
 
@@ -127,7 +107,8 @@ export class PathHelper {
     }
 
     public static pathBlocked(id: string): void {
-        if (PathHelper.Paths[id] && ++PathHelper.Paths[id].blockCount >= 10) { // Check if path has been blocked too long
+        if (PathHelper.Paths[id] &&
+            ++PathHelper.Paths[id].blockCount >= Config.PATHFINDING.PATH_MAX_BLOCKED_TICKS) { // Check if path has been blocked too long
             PathHelper.invalidatePath(id);
         }
     }
@@ -170,7 +151,9 @@ export class PathHelper {
 
         for (let i = tiles.length; --i >= 0;) {
             let tile = tiles[i];
-            if (tile.creep || tile.structure || tile.terrain === "wall") {
+            if (tile.creep ||
+                (tile.structure && !Config.WALKABLE_STRUCTURES[tile.structure.structureType]) ||
+                tile.terrain === "wall") {
                 return true;
             }
         }
@@ -189,7 +172,8 @@ export class PathHelper {
             let tile = tiles[i];
             if (tile.creep) {
                 blockTyped = BlockType.Temporarily;
-            } else if (tile.structure || tile.terrain === "wall") {
+            } else if ((tile.structure && !Config.WALKABLE_STRUCTURES[tile.structure.structureType]) ||
+                tile.terrain === "wall") {
                 return BlockType.Permanently;
             }
         }
@@ -197,7 +181,7 @@ export class PathHelper {
         return blockTyped;
     }
 
-    public static hasPathToTarget(from: RoomPosition | { pos: RoomPosition }, to: RoomPosition | { pos: RoomPosition }, autoInvalidate = true, maxRange = 1): boolean {
+    public static hasPathInProximity(from: RoomPosition | { pos: RoomPosition }, to: RoomPosition | { pos: RoomPosition }, autoInvalidate = true, maxRange = 1): boolean {
         let pathInfo = PathHelper.getPath(from, to);
         let toPos: RoomPosition;
         if (!(to instanceof RoomPosition)) {

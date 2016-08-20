@@ -170,6 +170,9 @@ export abstract class CreepObject extends GameObject {
                                 break;
 
                             case ERR_NO_PATH:
+                                target = creep.setTarget(this.getSource(target as Source));
+                                break;
+
                             case ERR_INVALID_TARGET:
                                 //console.log(creep.name + " | doHarvest | moveTo: " + ErrorHelper.getErrorString(moveResp));
                                 target = creep.setTarget(this.getSource());

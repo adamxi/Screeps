@@ -115,6 +115,10 @@ export module CreepEx {
             return ERR_INVALID_TARGET;
         }
 
+        if ((this as Creep).name === "H_1") {
+            debugger;
+        }
+
         let creepPos = (this as Creep).pos;
         if (creepPos.x === targetPos.x && creepPos.y === targetPos.y) {
             // Destination reached.
@@ -137,16 +141,17 @@ export module CreepEx {
             } else if (pathInfo.dest.x != targetPos.x || pathInfo.dest.y != targetPos.y) {
                 // Object position and path destination are not equal - reset pathInfo.
                 pathInfo = null;
-
-            } else if (!pathInfo.path) {
-                return OK;
+            }
+            else if (!pathInfo.path) {
+                pathInfo = null;
+                //return OK;
             }
         }
 
         if (!pathInfo) {
             //console.log("Getting path: " + (this as Creep).name + " " + creepPos + " | " + targetPos);
             pathInfo = PathHelper.getPath((this as Creep), targetPos);
-            if (requireOptimalPath && !PathHelper.hasPathToTarget((this as Creep), targetPos)) {
+            if (requireOptimalPath && !PathHelper.hasPathInProximity((this as Creep), targetPos)) {
                 return ERR_NO_PATH;
             }
 
@@ -169,10 +174,10 @@ export module CreepEx {
                     return OK;
                 }
 
-                console.log("Path Temporarily blocked: " + (this as Creep).name + " | " + pathInfo.id + " " + pathInfo.blockCount);
+                //console.log("Path Temporarily blocked: " + (this as Creep).name + " | " + pathInfo.id + " " + pathInfo.blockCount);
 
                 PathHelper.pathBlocked(pathInfo.id);
-                if (++pathInfo.blockCount >= Config.PATHFINDING.MAX_BLOCKED_TICKS) {
+                if (++pathInfo.blockCount >= Config.PATHFINDING.CREEP_MAX_BLOCKED_TICKS) {
                     //let oldDir = dir;
                     //while (oldDir === dir) {
                     //    dir = (Math.random() * 8) >> 0;
@@ -184,7 +189,7 @@ export module CreepEx {
                         pathInfo = PathHelper.getPath((this as Creep), targetPos);
                     }
 
-                    if (requireOptimalPath && !PathHelper.hasPathToTarget((this as Creep), targetPos)) {
+                    if (requireOptimalPath && !PathHelper.hasPathInProximity((this as Creep), targetPos)) {
                         (this as Creep).forget("pathInfo");
                         return ERR_NO_PATH;
                     }
