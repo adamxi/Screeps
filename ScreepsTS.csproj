@@ -84,9 +84,17 @@
   <ItemGroup>
     <Content Include="typings\globals\lodash\typings.json" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="setup.ps1" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="config.example.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="update typings.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="README.md" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">12.0</VisualStudioVersion>
@@ -129,6 +137,7 @@
     <TypeScriptNoEmitOnError>False</TypeScriptNoEmitOnError>
     <TypeScriptMapRoot />
     <TypeScriptSourceRoot />
+    <PublishDatabases>false</PublishDatabases>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TypeScriptRemoveComments>true</TypeScriptRemoveComments>
