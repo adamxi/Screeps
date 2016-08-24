@@ -510,6 +510,9 @@ export class ConstructionManager {
             case ERR_RCL_NOT_ENOUGH:
                 //console.log(this.Room.name + " | createConstructionSite: " + ErrorHelper.getErrorString(resp));
                 return false;
+
+			default:
+				return false;
         }
     }
 
@@ -562,7 +565,7 @@ export class ConstructionManager {
 
     private findTile(params: FindTileParams, onFind: { (x: number, y: number): boolean }): number {
         if (params.findCount <= 0) {
-            return;
+            return 0;
         }
 
         let tileMap: { [id: string]: { x: number, y: number, valid: boolean } } = {};

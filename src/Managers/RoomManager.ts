@@ -148,7 +148,8 @@ export class RoomManager {
         if (targetConstraint) {
             return targetConstraint.role;
         }
-        return null;
+
+		return null;
     }
 
     public getNextSpawn(): Spawn {

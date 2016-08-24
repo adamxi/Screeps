@@ -13,19 +13,19 @@ export module CreepEx {
 
     Object.defineProperty(Creep.prototype, "PathInfo", {
         get: function (): PathInfo {
-            return this.memory["pathInfo"];
+            return (this as Creep).memory["pathInfo"];
         },
         set: function (value: PathInfo) {
-            this.memory["pathInfo"] = value;
+            (this as Creep).memory["pathInfo"] = value;
         }
     });
 
     Creep.prototype.setState = function (state: CreepState, clearTarget = true): void {
         (this as Creep).log("Setting State: " + CreepState[state].toString() + " | clearTarget: " + clearTarget);
         if (clearTarget) {
-            this.clearTarget();
+            (this as Creep).clearTarget();
         }
-        this.memory[KEY_STATE] = state;
+        (this as Creep).memory[KEY_STATE] = state;
     }
 
     Creep.prototype.getState = function (): CreepState {
@@ -33,16 +33,16 @@ export module CreepEx {
     }
 
     Creep.prototype.setRole = function (role: CreepRole): void {
-        this.memory[KEY_ROLE] = role;
+        (this as Creep).memory[KEY_ROLE] = role;
     }
 
     Creep.prototype.getRole = function (): CreepRole {
-        return this.memory[KEY_ROLE] as CreepRole;
+        return (this as Creep).memory[KEY_ROLE] as CreepRole;
     }
 
     Creep.prototype.getTarget = function <T extends Source | Resource | Mineral | Creep | Structure | ConstructionSite>(...types: Function[]): T {
         // Note: Flags do not have an id
-        var targetInfo = this.memory[KEY_TARGET] as TargetInfo;
+        var targetInfo = (this as Creep).memory[KEY_TARGET] as TargetInfo;
 
         if (targetInfo) {
             let o = Game.getObjectById<T>(targetInfo.id);
@@ -63,7 +63,7 @@ export module CreepEx {
 
     Creep.prototype.getTargetInfo = function (): TargetInfo {
         // Note: Flags do not have an id
-        var targetInfo = this.memory[KEY_TARGET] as TargetInfo;
+        var targetInfo = (this as Creep).memory[KEY_TARGET] as TargetInfo;
 
         if (targetInfo) {
             return targetInfo;
@@ -84,14 +84,14 @@ export module CreepEx {
                 params: params,
                 typeName: typeName
             };
-            this.memory[KEY_TARGET] = targetInfo;
+            (this as Creep).memory[KEY_TARGET] = targetInfo;
         }
         return target;
     }
 
     Creep.prototype.clearTarget = function (): void {
-        if (this.memory[KEY_TARGET] != undefined) {
-            (this as Creep).log("Clear target: " + this.memory[KEY_TARGET].id);
+        if ((this as Creep).memory[KEY_TARGET] != undefined) {
+            (this as Creep).log("Clear target: " + (this as Creep).memory[KEY_TARGET].id);
             (this as Creep).forget(KEY_TARGET);
         }
     }
@@ -225,13 +225,13 @@ export module CreepEx {
     }
 
     Creep.prototype.remember = function (key: string, value: any, override = true): void {
-        if (override || this.memory[key] == undefined) {
-            this.memory[key] = value;
+        if (override || (this as Creep).memory[key] == undefined) {
+            (this as Creep).memory[key] = value;
         }
     }
 
     Creep.prototype.forget = function (key: string): void {
-        delete this.memory[key];
+        delete (this as Creep).memory[key];
     }
 
     Creep.prototype.showTarget = function (): void {
@@ -247,23 +247,23 @@ export module CreepEx {
             }
         }
 
-        console.log(this.name + " | State: " + CreepState[this.getState()] + " | Target: " + target);
+        console.log((this as Creep).name + " | State: " + CreepState[(this as Creep).getState()] + " | Target: " + target);
     }
 
     Creep.prototype.showData = function (): void {
-        console.log(JSON.stringify(this, null, "\t"));
+        console.log(JSON.stringify((this as Creep), null, "\t"));
     }
 
     Creep.prototype.showLog = function (): void {
-        if (!this.memory[KEY_LOG]) {
-            this.memory[KEY_LOG] = true;
+        if (!(this as Creep).memory[KEY_LOG]) {
+            (this as Creep).memory[KEY_LOG] = true;
         } else {
-            delete this.memory[KEY_LOG];
+            delete (this as Creep).memory[KEY_LOG];
         }
     }
 
     Creep.prototype.log = function (msg: string, ...callStack: string[]): void {
-        if (this.memory[KEY_LOG]) {
+        if ((this as Creep).memory[KEY_LOG]) {
             if (callStack.length > 0) {
                 msg += "\n\t" + callStack.join(" => ");
             }
